@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>2D绘画应用</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        #canvas-container {
+            position: relative;
+            margin-bottom: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            background-color: white;
+            width: 100%;
+            max-width: 600px;
+            touch-action: none; /* 防止触摸事件被浏览器处理 */
+        }
+        canvas {
+            border: 1px solid #ccc;
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            max-width: 600px;
+        }
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            opacity: 0.8;
+        }
+        .color-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+        }
+        #red {
+            background-color: red;
+        }
+        #blue {
+            background-color: blue;
+        }
+        #green {
+            background-color: green;
+        }
+        #black {
+            background-color: black;
+            color: white;
+        }
+        #clear {
+            background-color: #ff6b6b;
+            color: white;
+        }
+        #small-size {
+            background-color: #74b9ff;
+        }
+        #large-size {
+            background-color: #74b9ff;
+        }
+        #upload-btn {
+            background-color: #a29bfe;
+            color: white;
+        }
+        .active-size {
+            border: 2px solid #333;
+        }
+        .active-color {
+            border: 2px solid #333;
+        }
+        #file-input {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>2D绘画应用</h1>
+    <div id="canvas-container">
+        <canvas id="drawing-canvas" width="600" height="400"></canvas>
+    </div>
+    
+    <div class="controls">
+        <div>
+            <p>颜色选择：</p>
+            <div style="display: flex; gap: 10px;">
+                <button id="red" class="color-btn active-color" title="红色"></button>
+                <button id="blue" class="color-btn" title="蓝色"></button>
+                <button id="green" class="color-btn" title="绿色"></button>
+                <button id="black" class="color-btn" title="黑色"></button>
+            </div>
+        </div>
+        
+        <div>
+            <p>画笔大小：</p>
+            <div style="display: flex; gap: 10px;">
+                <button id="small-size" class="active-size">小圆</button>
+                <button id="large-size">大圆</button>
+            </div>
+        </div>
+        
+        <div>
+            <p>工具：</p>
+            <div style="display: flex; gap: 10px;">
+                <button id="clear">清除画布</button>
+                <button id="upload-btn">上传背景图片</button>
+                <input type="file" id="file-input" accept="image/*">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 获取DOM元素
+        const canvas = document.getElementById('drawing-canvas');
+        const ctx = canvas.getContext('2d');
+        const clearBtn = document.getElementById('clear');
+        const smallSizeBtn = document.getElementById('small-size');
+        const largeSizeBtn = document.getElementById('large-size');
+        const uploadBtn = document.getElementById('upload-btn');
+        const fileInput = document.getElementById('file-input');
+        
+        // 颜色按钮
+        const colorBtns = document.querySelectorAll('.color-btn');
+        
+        // 绘画状态变量
+        let isDrawing = false;
+        let currentColor = 'red'; // 默认红色
+        let brushSize = 5; // 默认小圆尺寸
+        let lastX = 0;
+        let lastY = 0;
+        
+        // 设置画布背景为白色
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // 功能：开始绘制
+        function startDrawing(e) {
+            isDrawing = true;
+            
+            // 获取鼠标相对于canvas的坐标
+            const rect = canvas.getBoundingClientRect();
+            lastX = e.clientX - rect.left;
+            lastY = e.clientY - rect.top;
+            
+            // 画一个点
+            drawDot(lastX, lastY);
+        }
+        
+        // 功能：绘制点
+        function drawDot(x, y) {
+            ctx.beginPath();
+            ctx.arc(x, y, brushSize, 0, Math.PI * 2);
+            ctx.fillStyle = currentColor;
+            ctx.fill();
+        }
+        
+        // 功能：绘制线条
+        function draw(e) {
+            if (!isDrawing) return;
+            
+            // 获取鼠标坐标
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            // 绘制线条
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(x, y);
+            ctx.strokeStyle = currentColor;
+            ctx.lineWidth = brushSize * 2;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+            
+            // 在当前点绘制一个点，使线条更平滑
+            drawDot(x, y);
+            
+            // 更新上一个点的坐标
+            lastX = x;
+            lastY = y;
+        }
+        
+        // 功能：停止绘制
+        function stopDrawing() {
+            isDrawing = false;
+        }
+        
+        // 功能：清除画布
+        function clearCanvas() {
+            // 如果有背景图，重新加载背景图
+            if (hasBackgroundImage) {
+                ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
+            } else {
+                // 否则用白色清除
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+        }
+        
+        // 功能：设置颜色
+        function setColor(color) {
+            currentColor = color;
+            
+            // 更新活动颜色样式
+            colorBtns.forEach(btn => {
+                if (btn.id === color) {
+                    btn.classList.add('active-color');
+                } else {
+                    btn.classList.remove('active-color');
+                }
+            });
+        }
+        
+        // 功能：设置画笔大小
+        function setBrushSize(size) {
+            brushSize = size;
+            
+            // 更新活动画笔大小按钮样式
+            if (size === 5) {
+                smallSizeBtn.classList.add('active-size');
+                largeSizeBtn.classList.remove('active-size');
+            } else {
+                largeSizeBtn.classList.add('active-size');
+                smallSizeBtn.classList.remove('active-size');
+            }
+        }
+        
+        // 背景图相关变量
+        let hasBackgroundImage = false;
+        let backgroundImage = new Image();
+        
+        // 功能：设置背景图片
+        function setBackgroundImage(file) {
+            if (file) {
+                const reader = new FileReader();
+                
+                reader.onload = function(event) {
+                    backgroundImage = new Image();
+                    backgroundImage.onload = function() {
+                        // 清除画布并绘制背景图
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
+                        hasBackgroundImage = true;
+                    };
+                    backgroundImage.src = event.target.result;
+                };
+                
+                reader.readAsDataURL(file);
+            }
+        }
+        
+        // 事件监听器 - 鼠标
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
+        
+        // 事件监听器 - 触摸屏
+        canvas.addEventListener('touchstart', function(e) {
+            e.preventDefault(); // 阻止默认行为（滚动、缩放）
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent('mousedown', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            canvas.dispatchEvent(mouseEvent);
+        }, { passive: false });
+        
+        canvas.addEventListener('touchmove', function(e) {
+            e.preventDefault(); // 阻止默认行为
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent('mousemove', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            canvas.dispatchEvent(mouseEvent);
+        }, { passive: false });
+        
+        canvas.addEventListener('touchend', function(e) {
+            e.preventDefault(); // 阻止默认行为
+            const mouseEvent = new MouseEvent('mouseup', {});
+            canvas.dispatchEvent(mouseEvent);
+        }, { passive: false });
+        
+        // 事件监听器 - 按钮
+        clearBtn.addEventListener('click', clearCanvas);
+        smallSizeBtn.addEventListener('click', () => setBrushSize(5));
+        largeSizeBtn.addEventListener('click', () => setBrushSize(10));
+        
+        // 颜色按钮监听器
+        document.getElementById('red').addEventListener('click', () => setColor('red'));
+        document.getElementById('blue').addEventListener('click', () => setColor('blue'));
+        document.getElementById('green').addEventListener('click', () => setColor('green'));
+        document.getElementById('black').addEventListener('click', () => setColor('black'));
+        
+        // 上传背景图片监听器
+        uploadBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                setBackgroundImage(e.target.files[0]);
+            }
+        });
+    </script>
+</body>
+</html>
