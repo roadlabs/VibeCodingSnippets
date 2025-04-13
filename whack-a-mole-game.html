@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>打地鼠游戏</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f8e6;
+        }
+        h1 {
+            color: #4a7c31;
+            font-size: clamp(1.5rem, 5vw, 2.5rem);
+            margin: 10px 0;
+        }
+        .game-container {
+            max-width: 90vw;
+            margin: 0 auto;
+            padding: 10px;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            font-size: clamp(1rem, 4vw, 1.2rem);
+            font-weight: bold;
+        }
+        .hits {
+            color: #3c8f00;
+        }
+        .misses {
+            color: #c73e3e;
+        }
+        #game-canvas {
+            background-color: #88cc66;
+            border: 4px solid #4a7c31;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            width: min(100%, 600px);
+            height: auto;
+            aspect-ratio: 1 / 1;
+            touch-action: none;
+        }
+        button {
+            background-color: #4a7c31;
+            color: white;
+            border: none;
+            padding: clamp(8px, 2vw, 10px) clamp(15px, 4vw, 20px);
+            font-size: clamp(0.9rem, 3vw, 1.1rem);
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #3c6627;
+        }
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+            .game-container {
+                padding: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>打地鼠游戏</h1>
+        <div class="stats">
+            <div class="hits">命中: <span id="hit-count">0</span></div>
+            <div class="misses">失败: <span id="miss-count">0</span></div>
+        </div>
+        <canvas id="game-canvas" width="400" height="400"></canvas>
+        <div>
+            <button id="restart-button">重新开始</button>
+        </div>
+    </div>
+
+    <script>
+        // 游戏变量
+        let canvas = document.getElementById('game-canvas');
+        let ctx = canvas.getContext('2d');
+        let hitCount = 0;
+        let missCount = 0;
+        let hitCountElement = document.getElementById('hit-count');
+        let missCountElement = document.getElementById('miss-count');
+        let restartButton = document.getElementById('restart-button');
+        let gameInterval;
+        let moleX = 0;
+        let moleY = 0;
+        let moleSize = 60; // 地鼠基础大小
+        let moleImage = new Image();
+        
+        // 调整画布大小
+        function resizeCanvas() {
+            // 获取canvas元素当前的CSS尺寸
+            const displayWidth = canvas.clientWidth;
+            const displayHeight = canvas.clientHeight;
+            
+            // 检查画布是否需要调整大小
+            if (canvas.width !== displayWidth || canvas.height !== displayHeight) {
+                // 更新画布的内部尺寸以匹配其CSS尺寸
+                canvas.width = displayWidth;
+                canvas.height = displayHeight;
+                
+                // 根据画布大小调整地鼠大小
+                moleSize = Math.min(canvas.width, canvas.height) * 0.15;
+                
+                // 重新绘制游戏
+                drawGame();
+            }
+        }
+        
+        // 创建一个简单的地鼠图形而不是使用外部图片
+        // 初始化游戏
+        moleImage.onload = function() {
+            resizeCanvas();
+            moveMole();
+            startGame();
+        };
+        
+        // 手动触发加载完成事件
+        setTimeout(function() {
+            resizeCanvas();
+            moveMole();
+            startGame();
+        }, 100);
+
+        // 移动地鼠到随机位置
+        function moveMole() {
+            moleX = Math.random() * (canvas.width - moleSize);
+            moleY = Math.random() * (canvas.height - moleSize);
+            drawGame();
+        }
+
+        // 绘制游戏界面
+        function drawGame() {
+            // 清除画布
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 绘制地鼠（使用简单的圆形代替图片）
+            ctx.beginPath();
+            ctx.fillStyle = '#8B4513'; // 棕色
+            ctx.arc(moleX + moleSize/2, moleY + moleSize/2, moleSize/2, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 绘制眼睛
+            ctx.beginPath();
+            ctx.fillStyle = 'white';
+            ctx.arc(moleX + moleSize/3, moleY + moleSize/3, moleSize/10, 0, Math.PI * 2);
+            ctx.arc(moleX + moleSize*2/3, moleY + moleSize/3, moleSize/10, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 绘制鼻子
+            ctx.beginPath();
+            ctx.fillStyle = 'black';
+            ctx.arc(moleX + moleSize/2, moleY + moleSize/2, moleSize/12, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // 开始游戏
+        function startGame() {
+            if (gameInterval) {
+                clearInterval(gameInterval);
+            }
+            
+            // 每秒移动地鼠
+            gameInterval = setInterval(moveMole, 1000);
+        }
+
+        // 重置游戏
+        function resetGame() {
+            hitCount = 0;
+            missCount = 0;
+            hitCountElement.textContent = hitCount;
+            missCountElement.textContent = missCount;
+            moveMole();
+            startGame();
+        }
+
+        // 获取画布上的点击位置（考虑缩放）
+        function getCanvasCoordinates(event, isTouch = false) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            
+            if (isTouch) {
+                return {
+                    x: (event.touches[0].clientX - rect.left) * scaleX,
+                    y: (event.touches[0].clientY - rect.top) * scaleY
+                };
+            } else {
+                return {
+                    x: (event.clientX - rect.left) * scaleX,
+                    y: (event.clientY - rect.top) * scaleY
+                };
+            }
+        }
+
+        // 点击事件处理
+        canvas.addEventListener('click', function(event) {
+            // 获取点击坐标
+            const position = getCanvasCoordinates(event);
+            
+            // 检查是否击中地鼠
+            if (
+                position.x >= moleX && 
+                position.x <= moleX + moleSize && 
+                position.y >= moleY && 
+                position.y <= moleY + moleSize
+            ) {
+                // 击中
+                hitCount++;
+                hitCountElement.textContent = hitCount;
+                moveMole(); // 立即移动地鼠到新位置
+            } else {
+                // 未击中
+                missCount++;
+                missCountElement.textContent = missCount;
+            }
+        });
+
+        // 触摸事件处理 (移动设备支持)
+        canvas.addEventListener('touchstart', function(event) {
+            event.preventDefault(); // 防止滚动或缩放
+            
+            // 获取触摸坐标
+            const position = getCanvasCoordinates(event, true);
+            
+            // 检查是否击中地鼠
+            if (
+                position.x >= moleX && 
+                position.x <= moleX + moleSize && 
+                position.y >= moleY && 
+                position.y <= moleY + moleSize
+            ) {
+                // 击中
+                hitCount++;
+                hitCountElement.textContent = hitCount;
+                moveMole(); // 立即移动地鼠到新位置
+            } else {
+                // 未击中
+                missCount++;
+                missCountElement.textContent = missCount;
+            }
+        });
+
+        // 重新开始按钮事件
+        restartButton.addEventListener('click', resetGame);
+        
+        // 监听窗口大小变化，调整画布
+        window.addEventListener('resize', function() {
+            resizeCanvas();
+            drawGame();
+        });
+    </script>
+</body>
+</html>
