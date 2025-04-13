@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>猫咪交互应用</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f5f5f5;
+        }
+        .container {
+            text-align: center;
+            max-width: 500px;
+            padding: 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        .cat-image {
+            width: 250px;
+            height: 250px;
+            cursor: pointer;
+            border-radius: 10px;
+            margin: 20px 0;
+            transition: transform 0.3s ease;
+        }
+        .button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 10px 0;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        .button:hover {
+            background-color: #45a049;
+        }
+        .shake {
+            animation: shake 0.5s;
+        }
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            10% { transform: translateX(-10px); }
+            20% { transform: translateX(10px); }
+            30% { transform: translateX(-10px); }
+            40% { transform: translateX(10px); }
+            50% { transform: translateX(-10px); }
+            60% { transform: translateX(10px); }
+            70% { transform: translateX(-10px); }
+            80% { transform: translateX(10px); }
+            90% { transform: translateX(-10px); }
+            100% { transform: translateX(0); }
+        }
+        .instructions {
+            margin-top: 20px;
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>猫咪交互应用</h1>
+        
+        <!-- 使用Data URI格式的猫咪图片 -->
+        <img id="catImage" class="cat-image" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNTAiIGhlaWdodD0iMjUwIiB2aWV3Qm94PSIwIDAgMjUwIDI1MCI+CiAgPGRlZnM+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9ImNhdEJvZHkiIGN4PSIxMjUiIGN5PSIxNTAiIHI9IjgwIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiNmZmFkNWEiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjZjA4YzM1Ii8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogIDwvZGVmcz4KICAKICA8IS0tIEJhY2tncm91bmQgLS0+CiAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjI1MCIgaGVpZ2h0PSIyNTAiIGZpbGw9IiNmNWY1ZjUiIHJ4PSIxMCIgcnk9IjEwIi8+CiAgCiAgPCEtLSBDYXQgQm9keSAtLT4KICA8ZWxsaXBzZSBjeD0iMTI1IiBjeT0iMTUwIiByeD0iNzAiIHJ5PSI2MCIgZmlsbD0idXJsKCNjYXRCb2R5KSIvPgogIAogIDwhLS0gQ2F0IEhlYWQgLS0+CiAgPGNpcmNsZSBjeD0iMTI1IiBjeT0iOTAiIHI9IjQwIiBmaWxsPSJ1cmwoI2NhdEJvZHkpIi8+CiAgCiAgPCEtLSBFYXJzIC0tPgogIDxwb2x5Z29uIHBvaW50cz0iOTUsNzAgODAsNDAgMTEwLDU1IiBmaWxsPSJ1cmwoI2NhdEJvZHkpIi8+CiAgPHBvbHlnb24gcG9pbnRzPSIxNTUsNzAgMTcwLDQwIDE0MCw1NSIgZmlsbD0idXJsKCNjYXRCb2R5KSIvPgogIAogIDwhLS0gRXllcyAtLT4KICA8ZWxsaXBzZSBjeD0iMTEwIiBjeT0iODUiIHJ4PSI3IiByeT0iMTAiIGZpbGw9IiNmZmYiLz4KICA8ZWxsaXBzZSBjeD0iMTQwIiBjeT0iODUiIHJ4PSI3IiByeT0iMTAiIGZpbGw9IiNmZmYiLz4KICA8ZWxsaXBzZSBjeD0iMTEwIiBjeT0iODUiIHJ4PSIzIiByeT0iNiIgZmlsbD0iIzAwMCIvPgogIDxlbGxpcHNlIGN4PSIxNDAiIGN5PSI4NSIgcng9IjMiIHJ5PSI2IiBmaWxsPSIjMDAwIi8+CiAgCiAgPCEtLSBOb3NlIC0tPgogIDxwb2x5Z29uIHBvaW50cz0iMTI1LDk1IDEyMCwxMDUgMTMwLDEwNSIgZmlsbD0iI2ZmYzBjYiIvPgogIAogIDwhLS0gTW91dGggLS0+CiAgPHBhdGggZD0iTTExMCwxMTAgQzExOCwxMjAgMTMyLDEyMCAxNDAsMTEwIiBzdHJva2U9IiM4ODgiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIvPgogIAogIDwhLS0gV2hpc2tlcnMgLS0+CiAgPGxpbmUgeDE9IjExMCIgeTE9IjEwNSIgeDI9IjgwIiB5Mj0iOTUiIHN0cm9rZT0iIzg4OCIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8bGluZSB4MT0iMTEwIiB5MT0iMTEwIiB4Mj0iNzUiIHkyPSIxMTAiIHN0cm9rZT0iIzg4OCIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8bGluZSB4MT0iMTEwIiB5MT0iMTE1IiB4Mj0iODAiIHkyPSIxMjUiIHN0cm9rZT0iIzg4OCIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICAKICA8bGluZSB4MT0iMTQwIiB5MT0iMTA1IiB4Mj0iMTcwIiB5Mj0iOTUiIHN0cm9rZT0iIzg4OCIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8bGluZSB4MT0iMTQwIiB5MT0iMTEwIiB4Mj0iMTc1IiB5Mj0iMTEwIiBzdHJva2U9IiM4ODgiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPGxpbmUgeDE9IjE0MCIgeTE9IjExNSIgeDI9IjE3MCIgeTI9IjEyNSIgc3Ryb2tlPSIjODg4IiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIAogIDwhLS0gVGFpbCAtLT4KICA8cGF0aCBkPSJNNTUsMTcwIEM3MCwxMzAgOTAsMTc1IDgwLDE5MCIgc3Ryb2tlPSJ1cmwoI2NhdEJvZHkpIiBzdHJva2Utd2lkdGg9IjEwIiBmaWxsPSJub25lIi8+CiAgCiAgPCEtLSBQYXdzIC0tPgogIDxjaXJjbGUgY3g9IjEwMCIgY3k9IjIwMCIgcj0iMTUiIGZpbGw9InVybCgjY2F0Qm9keSkiLz4KICA8Y2lyY2xlIGN4PSIxNTAiIGN5PSIyMDAiIHI9IjE1IiBmaWxsPSJ1cmwoI2NhdEJvZHkpIi8+Cjwvc3ZnPg==" alt="Cat Image">
+        
+        <button id="shakeButton" class="button">摇晃猫咪</button>
+        
+        <div class="instructions">
+            <p>👆 点击猫咪图片听到喵喵声</p>
+            <p>👆 点击"摇晃猫咪"按钮查看效果</p>
+        </div>
+    </div>
+
+    <!-- 创建猫叫声音效 -->
+    <audio id="meowSound" preload="auto">
+        <!-- 提供多种格式以提高兼容性 -->
+        <source src="/api/placeholder/400/320" type="audio/mpeg">
+        您的浏览器不支持音频元素。
+    </audio>
+
+    <script>
+        // 获取元素
+        const catImage = document.getElementById('catImage');
+        const shakeButton = document.getElementById('shakeButton');
+        
+        // 创建Web Audio API上下文
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const audioContext = new AudioContext();
+        
+        // 创建猫叫声音
+        function createMeowSound(frequency, duration) {
+            // 创建振荡器
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(frequency * 0.5, audioContext.currentTime + duration * 0.5);
+            
+            // 设置音量包络
+            gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.5, audioContext.currentTime + 0.05);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+            
+            // 连接节点
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            // 开始和停止振荡器
+            oscillator.start();
+            oscillator.stop(audioContext.currentTime + duration);
+        }
+        
+        // 点击猫咪播放声音
+        catImage.addEventListener('click', function() {
+            // 如果音频上下文被暂停，则恢复
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+            
+            // 播放猫叫声
+            createMeowSound(800, 0.5);
+        });
+        
+        // 点击摇晃按钮让猫咪摇晃
+        shakeButton.addEventListener('click', function() {
+            // 添加摇晃动画类
+            catImage.classList.add('shake');
+            
+            // 摇晃完成后移除动画类
+            setTimeout(function() {
+                catImage.classList.remove('shake');
+            }, 500);
+            
+            // 如果音频上下文被暂停，则恢复
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+            
+            // 播放不同的声音（更高频率）
+            createMeowSound(1200, 0.4);
+        });
+    </script>
+</body>
+</html>
