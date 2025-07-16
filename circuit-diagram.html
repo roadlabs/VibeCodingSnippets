@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>电路图应用</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* Light gray background */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            max-width: 900px;
+            width: 100%;
+        }
+        canvas {
+            border: 2px solid #cbd5e1; /* Light gray border */
+            border-radius: 8px;
+            background-color: #e2e8f0; /* Slightly darker background for canvas */
+            display: block;
+            width: 100%; /* Make canvas responsive */
+            max-width: 800px; /* Max width for larger screens */
+            aspect-ratio: 16 / 9; /* Maintain aspect ratio */
+            margin-bottom: 20px;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            width: 100%;
+        }
+        button {
+            background-color: #4f46e5; /* Indigo */
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
+            border: none;
+            outline: none;
+        }
+        button:hover {
+            background-color: #4338ca; /* Darker indigo on hover */
+            transform: translateY(-2px);
+        }
+        button:active {
+            background-color: #3730a3; /* Even darker on active */
+            transform: translateY(0);
+        }
+        .status-message {
+            margin-top: 15px;
+            font-size: 1.1em;
+            font-weight: 500;
+            color: #334155; /* Slate gray */
+        }
+        .light-on {
+            color: #fbbf24; /* Amber for light on */
+            font-weight: bold;
+        }
+        .light-off {
+            color: #64748b; /* Gray for light off */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6">电路图应用</h1>
+        <canvas id="circuitCanvas"></canvas>
+        <div class="controls">
+            <button id="toggleSwitch">切换开关</button>
+        </div>
+        <p id="statusMessage" class="status-message">灯泡状态: <span class="light-off">关闭</span></p>
+    </div>
+
+    <script>
+        // Get the canvas element and its 2D rendering context
+        const canvas = document.getElementById('circuitCanvas');
+        const ctx = canvas.getContext('2d');
+        const toggleButton = document.getElementById('toggleSwitch');
+        const statusMessage = document.getElementById('statusMessage');
+
+        // Circuit state variables
+        let isSwitchClosed = false; // Initial state of the switch (open)
+        let bulbOn = false; // Initial state of the bulb (off)
+
+        // Function to draw the circuit
+        function drawCircuit() {
+            // Clear the canvas before redrawing
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Set line properties
+            ctx.strokeStyle = '#334155'; // Dark gray for wires
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+
+            // Calculate component positions based on canvas size for responsiveness
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const wireLength = Math.min(canvas.width, canvas.height) * 0.2; // Relative wire length
+            const componentSize = Math.min(canvas.width, canvas.height) * 0.08; // Relative component size
+
+            // --- Draw Battery ---
+            const batteryX = centerX - wireLength * 1.5;
+            const batteryY = centerY - componentSize * 0.5;
+
+            // Long plate (positive)
+            ctx.beginPath();
+            ctx.moveTo(batteryX, batteryY);
+            ctx.lineTo(batteryX, batteryY + componentSize);
+            ctx.stroke();
+
+            // Short plate (negative)
+            ctx.beginPath();
+            ctx.moveTo(batteryX + 10, batteryY + 10); // Slightly offset for visual distinction
+            ctx.lineTo(batteryX + 10, batteryY + componentSize - 10);
+            ctx.stroke();
+
+            // Battery terminals
+            ctx.beginPath();
+            ctx.moveTo(batteryX, centerY);
+            ctx.lineTo(batteryX - wireLength * 0.5, centerY); // Wire from battery left
+            ctx.moveTo(batteryX + 10, centerY);
+            ctx.lineTo(batteryX + 10 + wireLength * 0.5, centerY); // Wire from battery right
+            ctx.stroke();
+
+            // --- Draw Resistor ---
+            const resistorX = batteryX + 10 + wireLength * 0.5 + wireLength * 0.2;
+            const resistorY = centerY;
+            const resistorWidth = componentSize * 1.5;
+            const resistorHeight = componentSize * 0.5;
+
+            ctx.beginPath();
+            ctx.rect(resistorX, resistorY - resistorHeight / 2, resistorWidth, resistorHeight);
+            ctx.stroke();
+            ctx.fillText("R", resistorX + resistorWidth / 2 - 5, resistorY + 5); // Label R
+
+            // Wires connecting to resistor
+            ctx.beginPath();
+            ctx.moveTo(batteryX + 10 + wireLength * 0.5, centerY);
+            ctx.lineTo(resistorX, centerY);
+            ctx.moveTo(resistorX + resistorWidth, centerY);
+            ctx.lineTo(resistorX + resistorWidth + wireLength * 0.2, centerY);
+            ctx.stroke();
+
+            // --- Draw Light Bulb ---
+            const bulbX = resistorX + resistorWidth + wireLength * 0.2 + wireLength * 0.2;
+            const bulbY = centerY;
+            const bulbRadius = componentSize * 0.4;
+
+            // Circle for bulb
+            ctx.beginPath();
+            ctx.arc(bulbX, bulbY, bulbRadius, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Cross for filament
+            ctx.beginPath();
+            ctx.moveTo(bulbX - bulbRadius * 0.5, bulbY - bulbRadius * 0.5);
+            ctx.lineTo(bulbX + bulbRadius * 0.5, bulbY + bulbRadius * 0.5);
+            ctx.moveTo(bulbX + bulbRadius * 0.5, bulbY - bulbRadius * 0.5);
+            ctx.lineTo(bulbX - bulbRadius * 0.5, bulbY + bulbRadius * 0.5);
+            ctx.stroke();
+
+            // Wires connecting to bulb
+            ctx.beginPath();
+            ctx.moveTo(resistorX + resistorWidth + wireLength * 0.2, centerY);
+            ctx.lineTo(bulbX - bulbRadius, centerY);
+            ctx.moveTo(bulbX + bulbRadius, centerY);
+            ctx.lineTo(bulbX + bulbRadius + wireLength * 0.2, centerY);
+            ctx.stroke();
+
+            // If bulb is on, draw a yellow glow
+            if (bulbOn) {
+                ctx.save(); // Save current context state
+                ctx.fillStyle = 'rgba(255, 255, 0, 0.5)'; // Yellow with transparency
+                ctx.shadowBlur = 20; // Glow effect
+                ctx.shadowColor = 'yellow';
+                ctx.beginPath();
+                ctx.arc(bulbX, bulbY, bulbRadius + 5, 0, Math.PI * 2); // Slightly larger circle for glow
+                ctx.fill();
+                ctx.restore(); // Restore context state
+            }
+
+            // --- Draw Switch ---
+            const switchX = bulbX + bulbRadius + wireLength * 0.2 + wireLength * 0.2;
+            const switchY = centerY;
+            const switchLength = componentSize * 1.2;
+
+            ctx.beginPath();
+            ctx.arc(switchX, switchY, 5, 0, Math.PI * 2); // Left terminal
+            ctx.arc(switchX + switchLength, switchY, 5, 0, Math.PI * 2); // Right terminal
+            ctx.fill(); // Fill the terminals
+
+            // Draw the switch arm
+            ctx.beginPath();
+            ctx.moveTo(switchX, switchY);
+            if (isSwitchClosed) {
+                ctx.lineTo(switchX + switchLength, switchY); // Closed position
+            } else {
+                ctx.lineTo(switchX + switchLength * 0.7, switchY - switchLength * 0.5); // Open position
+            }
+            ctx.stroke();
+
+            // Wires connecting to switch
+            ctx.beginPath();
+            ctx.moveTo(bulbX + bulbRadius + wireLength * 0.2, centerY);
+            ctx.lineTo(switchX, centerY);
+            ctx.moveTo(switchX + switchLength, centerY);
+            ctx.lineTo(switchX + switchLength + wireLength * 0.2, centerY);
+            ctx.stroke();
+
+            // --- Complete the circuit loop ---
+            ctx.beginPath();
+            ctx.moveTo(batteryX - wireLength * 0.5, centerY);
+            ctx.lineTo(batteryX - wireLength * 0.5, centerY + componentSize * 2); // Down from battery
+            ctx.lineTo(switchX + switchLength + wireLength * 0.2, centerY + componentSize * 2); // Across bottom
+            ctx.lineTo(switchX + switchLength + wireLength * 0.2, centerY); // Up to switch
+            ctx.stroke();
+        }
+
+        // Function to update the bulb state and redraw
+        function updateBulbState() {
+            bulbOn = isSwitchClosed;
+            drawCircuit();
+            statusMessage.innerHTML = `灯泡状态: <span class="${bulbOn ? 'light-on' : 'light-off'}">${bulbOn ? '开启' : '关闭'}</span>`;
+        }
+
+        // Event listener for the toggle button
+        toggleButton.addEventListener('click', () => {
+            isSwitchClosed = !isSwitchClosed; // Toggle the switch state
+            updateBulbState(); // Update bulb and redraw
+        });
+
+        // Handle canvas resizing to make it responsive
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            canvas.width = container.clientWidth - 48; // Account for padding
+            canvas.height = canvas.width * (9 / 16); // Maintain 16:9 aspect ratio
+            drawCircuit(); // Redraw circuit on resize
+        }
+
+        // Initial draw and setup
+        window.onload = () => {
+            resizeCanvas(); // Set initial size
+            updateBulbState(); // Initial bulb state and message
+        };
+        window.addEventListener('resize', resizeCanvas); // Redraw on window resize
+
+    </script>
+</body>
+</html>
