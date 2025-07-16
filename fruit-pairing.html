@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>水果配对游戏</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com "></script>
+  <!-- React and ReactDOM -->
+  <script crossorigin src="https://unpkg.com/react @18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom @18/umd/react-dom.development.js"></script>
+  <!-- Babel for JSX support -->
+  <script src="https://unpkg.com/ @babel/standalone/babel.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    const App = () => {
+      const [cards, setCards] = useState([]);
+      const [flipped, setFlipped] = useState([]);
+      const [matched, setMatched] = useState([]);
+      const [moves, setMoves] = useState(0);
+      const [gameOver, setGameOver] = useState(false);
+      const [difficulty, setDifficulty] = useState('easy');
+
+      const fruitEmojis = ['🍎', '🍌', '🍇', '🍓', '🍍', '🍒', '🍊', '🍉'];
+
+      const getCardCount = () => {
+        switch (difficulty) {
+          case 'easy': return 8;   // 2x4
+          case 'medium': return 12; // 3x4
+          case 'hard': return 16;  // 4x4
+          default: return 8;
+        }
+      };
+
+      const shuffleArray = (array) => {
+        const newArray = [...array];
+        for (let i = newArray.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+        }
+        return newArray;
+      };
+
+      const initializeGame = () => {
+        const cardCount = getCardCount();
+        const selectedFruits = shuffleArray(fruitEmojis).slice(0, cardCount / 2);
+        const newCards = shuffleArray([...selectedFruits, ...selectedFruits]);
+
+        setCards(newCards);
+        setFlipped([]);
+        setMatched([]);
+        setMoves(0);
+        setGameOver(false);
+      };
+
+      useEffect(() => {
+        initializeGame();
+      }, [difficulty]);
+
+      useEffect(() => {
+        if (flipped.length === 2) {
+          const [first, second] = flipped;
+
+          if (cards[first] === cards[second]) {
+            setMatched(prev => [...prev, first, second]);
+            setFlipped([]);
+          } else {
+            setTimeout(() => {
+              setFlipped([]);
+            }, 800);
+          }
+
+          setMoves(prev => prev + 1);
+        }
+      }, [flipped]);
+
+      useEffect(() => {
+        if (matched.length === cards.length) {
+          setGameOver(true);
+        }
+      }, [matched]);
+
+      const handleCardClick = (index) => {
+        if (flipped.includes(index) || matched.includes(index) || gameOver) return;
+
+        if (flipped.length < 2) {
+          setFlipped(prev => [...prev, index]);
+        }
+      };
+
+      const renderCard = (index) => {
+        const isFlipped = flipped.includes(index);
+        const isMatched = matched.includes(index);
+
+        return (
+          <div
+            key={index}
+            onClick={() => handleCardClick(index)}
+            className="w-16 h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 flex items-center justify-center text-2xl font-bold rounded-md shadow-md cursor-pointer transition-all duration-300 transform hover:scale-105 bg-gradient-to-br from-yellow-100 to-red-100"
+          >
+            {isFlipped || isMatched ? cards[index] : '❓'}
+          </div>
+        );
+      };
+
+      const getGridCols = () => {
+        switch (difficulty) {
+          case 'easy': return 'grid-cols-4';     // 2x4
+          case 'medium': return 'grid-cols-4';   // 3x4
+          case 'hard': return 'grid-cols-4';     // 4x4
+          default: return 'grid-cols-4';
+        }
+      };
+
+      return (
+        <div className="min-h-screen bg-gradient-to-b from-blue-50 to-purple-50 py-12 px-4">
+          <div className="max-w-4xl mx-auto">
+            <h1 className="text-4xl md:text-5xl font-bold text-center text-gray-800 mb-8">水果配对游戏 🍓</h1>
+
+            <div className="flex flex-col md:flex-row justify-between items-center mb-8 space-y-4 md:space-y-0">
+              <div className="flex items-center space-x-4">
+                <span className="text-lg font-medium">难度:</span>
+                <select
+                  value={difficulty}
+                  onChange={(e) => setDifficulty(e.target.value)}
+                  className="border border-gray-300 rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="easy">简单 (2x4)</option>
+                  <option value="medium">中等 (3x4)</option>
+                  <option value="hard">困难 (4x4)</option>
+                </select>
+                <button
+                  onClick={initializeGame}
+                  className="bg-blue-500 text-white px-4 py-1 rounded-md hover:bg-blue-600 transition-colors"
+                >
+                  重新开始
+                </button>
+              </div>
+
+              <div className="flex space-x-6 text-lg font-medium">
+                <div>步数: <span className="font-bold">{moves}</span></div>
+                {gameOver && (
+                  <div className="text-green-600">完成！🎉</div>
+                )}
+              </div>
+            </div>
+
+            <div
+              className={`grid gap-4 ${getGridCols()} justify-items-center max-w-xl mx-auto`}
+            >
+              {cards.map((_, index) => renderCard(index))}
+            </div>
+
+            <div className="mt-12 p-6 bg-white rounded-lg shadow-md max-w-md mx-auto">
+              <h2 className="text-xl font-semibold mb-3">玩法说明:</h2>
+              <ul className="list-disc pl-5 space-y-2 text-gray-700">
+                <li>点击卡片翻开水果图案</li>
+                <li>尝试找到相同的水果配对</li>
+                <li>每两次不同的翻牌会自动关闭</li>
+                <li>匹配所有卡片以完成游戏</li>
+                <li>挑战自己，看看能用最少的步数完成吗？</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
