@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32 模拟器</title>
+    <!-- 引入 Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 自定义滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #2d3748; /* bg-gray-800 */
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4a5568; /* bg-gray-600 */
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280; /* bg-gray-500 */
+        }
+
+        /* 设置Inter字体 */
+        body {
+            font-family: "Inter", sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen flex flex-col p-4">
+
+    <header class="text-center mb-6">
+        <h1 class="text-4xl font-bold text-blue-400">ESP32 模拟器概念</h1>
+        <p class="text-gray-400 mt-2">一个简化的Wokwi风格模拟器示例</p>
+    </header>
+
+    <main class="flex flex-grow flex-col lg:flex-row gap-6 max-w-7xl mx-auto w-full">
+
+        <!-- 左侧面板: 代码编辑器和控制台 -->
+        <section class="flex flex-col w-full lg:w-1/2 bg-gray-800 rounded-lg shadow-xl p-4">
+            <h2 class="text-2xl font-semibold mb-4 text-blue-300">代码编辑器</h2>
+            <textarea id="codeEditor" spellcheck="false"
+                      class="flex-grow w-full bg-gray-700 text-gray-200 p-3 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-mono resize-y min-h-[150px] lg:min-h-[300px]">
+// 模拟 ESP32 代码
+// 使用 `digitalWrite(pin, value)` 控制引脚
+// 使用 `serialPrint(message)` 打印到串行监视器
+
+let ledState = false; // 初始LED状态
+
+function setup() {
+    // 模拟setup函数，在此处进行一次性设置
+    serialPrint("模拟器启动...");
+    serialPrint("LED连接到GPIO 2");
+    digitalWrite(2, 0); // 确保LED初始关闭
+}
+
+function loop() {
+    // 模拟loop函数，会重复执行
+    // 每秒切换LED状态
+    if (Date.now() % 2000 < 1000) { // 模拟每秒切换
+        if (!ledState) {
+            digitalWrite(2, 1); // 打开LED
+            serialPrint("LED: ON");
+            ledState = true;
+        }
+    } else {
+        if (ledState) {
+            digitalWrite(2, 0); // 关闭LED
+            serialPrint("LED: OFF");
+            ledState = false;
+        }
+    }
+}
+            </textarea>
+
+            <div class="flex flex-wrap gap-3 mt-4">
+                <button id="runButton" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
+                    运行
+                </button>
+                <button id="stopButton" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
+                    停止
+                </button>
+                <button id="resetButton" class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
+                    重置
+                </button>
+            </div>
+
+            <h2 class="text-2xl font-semibold mt-6 mb-4 text-blue-300">串行监视器</h2>
+            <textarea id="serialMonitor" readonly
+                      class="w-full h-40 bg-gray-700 text-green-400 p-3 rounded-md border border-gray-600 focus:outline-none text-sm font-mono resize-none"></textarea>
+        </section>
+
+        <!-- 右侧面板: ESP32 板和组件 -->
+        <section class="flex flex-col w-full lg:w-1/2 bg-gray-800 rounded-lg shadow-xl p-4 items-center justify-center">
+            <h2 class="text-2xl font-semibold mb-6 text-blue-300">模拟 ESP32 板</h2>
+            
+            <div class="relative bg-gray-700 p-6 rounded-xl shadow-inner border-2 border-gray-600 flex flex-col items-center justify-center">
+                <!-- ESP32 板的视觉表示 -->
+                <div class="bg-gray-900 w-[280px] h-[180px] rounded-lg border-4 border-gray-600 flex items-center justify-center relative">
+                    <p class="text-gray-500 text-xl font-bold">ESP32</p>
+                    <!-- 模拟的GPIO引脚 -->
+                    <div class="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-full flex gap-2">
+                        <div class="w-2 h-4 bg-gray-500 rounded-b-sm"></div>
+                        <div class="w-2 h-4 bg-gray-500 rounded-b-sm"></div>
+                        <div class="w-2 h-4 bg-gray-500 rounded-b-sm"></div>
+                    </div>
+                    <div class="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-full flex gap-2">
+                        <div class="w-2 h-4 bg-gray-500 rounded-t-sm"></div>
+                        <div class="w-2 h-4 bg-gray-500 rounded-t-sm"></div>
+                        <div class="w-2 h-4 bg-gray-500 rounded-t-sm"></div>
+                    </div>
+
+                    <!-- 模拟的GPIO引脚标签 -->
+                    <div class="absolute -left-16 top-4 flex flex-col gap-2 text-xs text-gray-400">
+                        <span class="w-10 text-right">GND</span>
+                        <span class="w-10 text-right">3V3</span>
+                        <span class="w-10 text-right">GPIO 36</span>
+                        <span class="w-10 text-right">GPIO 39</span>
+                        <span class="w-10 text-right">GPIO 34</span>
+                        <span class="w-10 text-right">GPIO 35</span>
+                    </div>
+                    <div class="absolute -right-16 top-4 flex flex-col gap-2 text-xs text-gray-400">
+                        <span class="w-10 text-left">GPIO 23</span>
+                        <span class="w-10 text-left">GPIO 22</span>
+                        <span class="w-10 text-left">GPIO 1</span>
+                        <span class="w-10 text-left">GPIO 3</span>
+                        <span class="w-10 text-left">GPIO 21</span>
+                        <span class="w-10 text-left">GPIO 19</span>
+                    </div>
+
+                    <!-- 模拟的LED -->
+                    <div class="absolute -top-16 right-1/4 flex flex-col items-center">
+                        <div class="w-2 h-6 bg-gray-600 rounded-t-full"></div> <!-- LED支架 -->
+                        <div id="simulatedLed" class="w-6 h-6 rounded-full border-2 border-gray-500 transition-colors duration-200"
+                             style="background-color: #333;"></div> <!-- 初始关闭的LED -->
+                        <span class="text-xs text-gray-400 mt-1">GPIO 2 (LED)</span>
+                        <div class="w-px h-8 bg-gray-500"></div> <!-- 连接线 -->
+                        <div class="w-px h-8 bg-gray-500 absolute top-12 left-1/2 transform -translate-x-1/2"></div>
+                        <div class="w-2 h-2 rounded-full bg-gray-500 absolute top-[100px] left-1/2 transform -translate-x-1/2"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="mt-8 text-center text-gray-500 text-sm">
+        <p>&copy; 2025 模拟器概念应用. 所有权利保留.</p>
+    </footer>
+
+    <script>
+        // 获取DOM元素
+        const codeEditor = document.getElementById('codeEditor');
+        const serialMonitor = document.getElementById('serialMonitor');
+        const runButton = document.getElementById('runButton');
+        const stopButton = document.getElementById('stopButton');
+        const resetButton = document.getElementById('resetButton');
+        const simulatedLed = document.getElementById('simulatedLed');
+
+        // 模拟ESP32的GPIO状态
+        const simulatedGPIO = {}; // 存储引脚状态，例如 {2: 0, 4: 1}
+        let simulationInterval = null; // 用于loop函数的定时器
+        let userCode = {
+            setup: () => {},
+            loop: () => {}
+        };
+
+        // 模拟 `digitalWrite` 函数
+        // pin: GPIO引脚号
+        // value: 0 (LOW) 或 1 (HIGH)
+        function digitalWrite(pin, value) {
+            simulatedGPIO[pin] = value;
+            // 更新模拟LED的视觉状态
+            if (pin === 2) { // 假设LED连接到GPIO 2
+                if (value === 1) {
+                    simulatedLed.style.backgroundColor = 'rgb(252, 165, 165)'; // 浅红色
+                    simulatedLed.style.boxShadow = '0 0 15px rgba(252, 165, 165, 0.7)'; // 发光效果
+                } else {
+                    simulatedLed.style.backgroundColor = '#333'; // 关闭
+                    simulatedLed.style.boxShadow = 'none';
+                }
+            }
+            // serialPrint(`GPIO ${pin} 设置为 ${value}`); // 调试用
+        }
+
+        // 模拟 `digitalRead` 函数
+        // pin: GPIO引脚号
+        // 返回: 0 (LOW) 或 1 (HIGH)
+        function digitalRead(pin) {
+            return simulatedGPIO[pin] || 0; // 如果未设置，默认为0
+        }
+
+        // 模拟 `serialPrint` 函数
+        // message: 要打印到串行监视器的字符串
+        function serialPrint(message) {
+            const now = new Date();
+            const time = now.toLocaleTimeString();
+            serialMonitor.value += `[${time}] ${message}\n`;
+            serialMonitor.scrollTop = serialMonitor.scrollHeight; // 自动滚动到底部
+        }
+
+        // 解析并加载用户代码
+        function loadUserCode() {
+            const code = codeEditor.value;
+            try {
+                // 使用Function构造函数来执行用户代码，并将其沙箱化
+                // 限制可访问的全局变量，以提高安全性（尽管这仍然不是完全安全的）
+                const wrappedCode = `
+                    const _digitalWrite = digitalWrite;
+                    const _digitalRead = digitalRead;
+                    const _serialPrint = serialPrint;
+
+                    const exports = {};
+                    (function(digitalWrite, digitalRead, serialPrint) {
+                        ${code}
+                        exports.setup = typeof setup === 'function' ? setup : () => {};
+                        exports.loop = typeof loop === 'function' ? loop : () => {};
+                    })( _digitalWrite, _digitalRead, _serialPrint);
+                    return exports;
+                `;
+                const codeFunction = new Function('digitalWrite', 'digitalRead', 'serialPrint', wrappedCode);
+                const result = codeFunction(digitalWrite, digitalRead, serialPrint);
+                userCode.setup = result.setup;
+                userCode.loop = result.loop;
+                serialPrint("代码加载成功。");
+            } catch (e) {
+                serialPrint(`代码加载错误: ${e.message}`);
+                console.error("代码加载错误:", e);
+                userCode.setup = () => {};
+                userCode.loop = () => {};
+            }
+        }
+
+        // 运行模拟
+        function runSimulation() {
+            if (simulationInterval) {
+                serialPrint("模拟器已在运行。请先停止。");
+                return;
+            }
+
+            serialMonitor.value = ''; // 清空串行监视器
+            serialPrint("正在运行模拟...");
+            loadUserCode(); // 每次运行前重新加载代码
+
+            try {
+                userCode.setup(); // 执行一次setup函数
+            } catch (e) {
+                serialPrint(`Setup函数执行错误: ${e.message}`);
+                console.error("Setup函数执行错误:", e);
+                return; // 如果setup失败，则不启动loop
+            }
+
+            // 每100毫秒执行一次loop函数，模拟微控制器循环
+            simulationInterval = setInterval(() => {
+                try {
+                    userCode.loop();
+                } catch (e) {
+                    serialPrint(`Loop函数执行错误: ${e.message}`);
+                    console.error("Loop函数执行错误:", e);
+                    stopSimulation(); // 发生错误时停止模拟
+                }
+            }, 100); // 模拟loop执行频率
+            
+            runButton.disabled = true;
+            stopButton.disabled = false;
+            resetButton.disabled = false;
+        }
+
+        // 停止模拟
+        function stopSimulation() {
+            if (simulationInterval) {
+                clearInterval(simulationInterval);
+                simulationInterval = null;
+                serialPrint("模拟器已停止。");
+            }
+            runButton.disabled = false;
+            stopButton.disabled = true;
+        }
+
+        // 重置模拟器
+        function resetSimulation() {
+            stopSimulation();
+            serialMonitor.value = '';
+            simulatedGPIO = {}; // 清空GPIO状态
+            digitalWrite(2, 0); // 确保LED关闭
+            serialPrint("模拟器已重置。");
+            runButton.disabled = false;
+            stopButton.disabled = true;
+            resetButton.disabled = false;
+        }
+
+        // 事件监听器
+        runButton.addEventListener('click', runSimulation);
+        stopButton.addEventListener('click', stopSimulation);
+        resetButton.addEventListener('click', resetSimulation);
+
+        // 初始状态设置
+        stopButton.disabled = true; // 初始时停止按钮禁用
+        resetButton.disabled = false; // 初始时重置按钮启用
+        serialPrint("欢迎来到 ESP32 模拟器概念！");
+        serialPrint("点击 '运行' 按钮开始模拟。");
+        digitalWrite(2, 0); // 确保LED初始关闭
+    </script>
+</body>
+</html>
