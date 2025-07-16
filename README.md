@@ -6,3 +6,4 @@
 - [Scratch Like](scratch-like.html)
 - [ESP32 Emulator](esp32-emulator.html)
 - [Circuit Diagram](circuit-diagram.html)
+- [Fruit Pairing](fruit-pairing.html)
