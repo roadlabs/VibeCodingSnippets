@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简易 Scratch 风格应用</title>
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom Tailwind configuration */
+        @tailwind base;
+        @tailwind components;
+        @tailwind utilities;
+
+        body {
+            font-family: "Inter", sans-serif; /* Use Inter font */
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background-color: #f0f4f8; /* Light gray background */
+        }
+
+        /* Stage area */
+        #stage {
+            border: 2px solid #3b82f6; /* Blue border */
+            background-color: #ffffff; /* White background */
+            border-radius: 0.75rem; /* Rounded corners */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* Shadow */
+        }
+
+        /* Block styles */
+        .block-item {
+            cursor: grab; /* Grab cursor */
+            user-select: none; /* Disable text selection */
+            transition: transform 0.1s ease-in-out; /* Smooth transition */
+            display: flex; /* Use flexbox for content alignment */
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem; /* Spacing */
+            min-height: 2.5rem; /* Ensure enough height for content and padding */
+            padding-left: 0.75rem; /* Default padding */
+            padding-right: 0.75rem;
+            border-radius: 0.75rem; /* Ensure all blocks have rounded corners */
+        }
+
+        .block-item:active {
+            cursor: grabbing; /* Grabbing cursor */
+            transform: scale(1.05); /* Slightly enlarge */
+        }
+
+        /* Drag-over target area style */
+        #script-area.drag-over {
+            border: 2px dashed #93c5fd; /* Dashed border */
+            background-color: #eff6ff; /* Light blue background */
+        }
+
+        /* Button styles */
+        .action-button {
+            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+        }
+
+        .action-button:hover {
+            transform: translateY(-2px); /* Slightly move up on hover */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .action-button:active {
+            transform: translateY(0); /* Reset on click */
+            box-shadow: none;
+        }
+
+        /* Block parameter input field style */
+        .block-param-input {
+            width: 4rem; /* Default width */
+            text-align: center;
+            border-radius: 0.25rem;
+            border: 1px solid #d1d5db; /* Gray border */
+            padding: 0.25rem 0.5rem;
+            color: #1f2937; /* Dark gray text */
+            background-color: #f9fafb; /* Light background */
+            font-size: 0.875rem; /* 14px */
+            box-shadow: inset 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        }
+
+        .block-param-input[type="text"] {
+            width: 8rem; /* Wider for text inputs */
+        }
+
+        .block-param-input[type="color"] {
+            width: 3rem; /* Color input is smaller */
+            height: 1.75rem;
+            padding: 0;
+            border: none;
+            cursor: pointer;
+        }
+
+        /* Styles for container blocks (e.g., repeat_times) */
+        .block-container {
+            position: relative;
+            margin-bottom: 0.25rem; /* Small gap for visual stacking */
+            /* Removed specific border-radius for C-shape, now it will be rounded like normal blocks */
+        }
+
+        /* Indentation for child blocks */
+        .block-child {
+            margin-left: 1.5rem; /* Indent children */
+            width: calc(100% - 1.5rem); /* Adjust width to fit */
+            box-sizing: border-box; /* Include padding and border in width */
+        }
+
+        /* Removed specific C-block styling for repeat_times */
+        /* .block-item[data-block-id="repeat_times"] {
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+            padding-bottom: 0.5rem;
+        } */
+        /* Removed pseudo-elements for the C-shape bottom */
+        /* .block-item[data-block-id="repeat_times"]::after { ... } */
+        /* .block-item[data-block-id="repeat_times"]::before { ... } */
+
+
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-7xl mx-auto bg-white rounded-xl shadow-lg p-6 md:p-8">
+        <h1 class="text-3xl md:text-4xl font-extrabold text-center text-blue-700 mb-6">简易 Scratch 风格应用</h1>
+
+        <div class="flex flex-col lg:flex-row gap-6">
+            <!-- Block palette -->
+            <div class="w-full lg:w-1/4 bg-blue-50 p-4 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold text-blue-800 mb-4">积木</h2>
+                <div id="block-palette" class="space-y-3">
+                    <!-- Motion blocks -->
+                    <div class="block-category bg-blue-200 p-3 rounded-md">
+                        <h3 class="font-bold text-blue-900 mb-2">运动</h3>
+                        <div class="block-item bg-blue-500 text-white p-2 rounded-md shadow-sm text-sm" draggable="true" data-block-id="move_steps">
+                            移动 <span class="font-bold">10</span> 步
+                        </div>
+                        <div class="block-item bg-blue-500 text-white p-2 rounded-md shadow-sm text-sm mt-2" draggable="true" data-block-id="turn_degrees">
+                            右转 <span class="font-bold">90</span> 度
+                        </div>
+                        <div class="block-item bg-blue-500 text-white p-2 rounded-md shadow-sm text-sm mt-2" draggable="true" data-block-id="turn_left_degrees">
+                            左转 <span class="font-bold">90</span> 度
+                        </div>
+                    </div>
+
+                    <!-- Looks blocks -->
+                    <div class="block-category bg-purple-200 p-3 rounded-md mt-4">
+                        <h3 class="font-bold text-purple-900 mb-2">外观</h3>
+                        <div class="block-item bg-purple-500 text-white p-2 rounded-md shadow-sm text-sm" draggable="true" data-block-id="say_message">
+                            说 <span class="font-bold">Hello!</span>
+                        </div>
+                    </div>
+
+                    <!-- Pen blocks -->
+                    <div class="block-category bg-green-200 p-3 rounded-md mt-4">
+                        <h3 class="font-bold text-green-900 mb-2">画笔</h3>
+                        <div class="block-item bg-green-500 text-white p-2 rounded-md shadow-sm text-sm" draggable="true" data-block-id="pen_down">
+                            落笔
+                        </div>
+                        <div class="block-item bg-green-500 text-white p-2 rounded-md shadow-sm text-sm mt-2" draggable="true" data-block-id="pen_up">
+                            抬笔
+                        </div>
+                        <div class="block-item bg-green-500 text-white p-2 rounded-md shadow-sm text-sm mt-2" draggable="true" data-block-id="set_pen_color">
+                            设置画笔颜色为 <span class="font-bold">#000000</span>
+                        </div>
+                        <div class="block-item bg-green-500 text-white p-2 rounded-md shadow-sm text-sm mt-2" draggable="true" data-block-id="set_pen_size">
+                            设置画笔粗细为 <span class="font-bold">2</span>
+                        </div>
+                        <div class="block-item bg-green-500 text-white p-2 rounded-md shadow-sm text-sm mt-2" draggable="true" data-block-id="clear_drawing">
+                            清空画笔
+                        </div>
+                    </div>
+
+                    <!-- Event blocks -->
+                    <div class="block-category bg-yellow-200 p-3 rounded-md mt-4">
+                        <h3 class="font-bold text-yellow-900 mb-2">事件</h3>
+                        <div class="block-item bg-yellow-500 text-white p-2 rounded-md shadow-sm text-sm" draggable="true" data-block-id="whenFlagClicked">
+                            当 🚩 被点击
+                        </div>
+                    </div>
+
+                    <!-- Control blocks -->
+                    <div class="block-category bg-orange-200 p-3 rounded-md mt-4">
+                        <h3 class="font-bold text-orange-900 mb-2">控制</h3>
+                        <div class="block-item bg-orange-500 text-white p-2 rounded-md shadow-sm text-sm" draggable="true" data-block-id="wait_seconds">
+                            等待 <span class="font-bold">1</span> 秒
+                        </div>
+                        <div class="block-item bg-orange-500 text-white p-2 rounded-md shadow-sm text-sm mt-2" draggable="true" data-block-id="repeat_times">
+                            重复 <span class="font-bold">4</span> 次
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Script area and Stage area -->
+            <div class="w-full lg:w-3/4 flex flex-col gap-6">
+                <!-- Script area -->
+                <div class="bg-gray-100 p-4 rounded-lg shadow-md flex-1">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">脚本区 (将积木拖到这里)</h2>
+                    <div id="script-area" class="min-h-[200px] bg-white border-2 border-dashed border-gray-300 rounded-md p-4 space-y-2 relative">
+                        <!-- Dragged blocks will appear here -->
+                        <p id="script-placeholder" class="text-gray-400 text-center absolute inset-0 flex items-center justify-center">
+                            将积木拖放到这里开始编写脚本
+                        </p>
+                    </div>
+                    <div class="flex justify-center gap-4 mt-4">
+                        <button id="run-button" class="action-button bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-full shadow-lg">
+                            运行 🚩
+                        </button>
+                        <button id="stop-button" class="action-button bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-full shadow-lg">
+                            停止 🛑
+                        </button>
+                        <button id="reset-button" class="action-button bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-full shadow-lg">
+                            重置 🔄
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Stage area -->
+                <div class="bg-gray-100 p-4 rounded-lg shadow-md">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">舞台</h2>
+                    <canvas id="stage" width="480" height="360" class="w-full h-auto max-w-full rounded-md"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get DOM elements
+        const blockPalette = document.getElementById('block-palette');
+        const scriptArea = document.getElementById('script-area');
+        const scriptPlaceholder = document.getElementById('script-placeholder');
+        const stageCanvas = document.getElementById('stage');
+        const ctx = stageCanvas.getContext('2d');
+        const runButton = document.getElementById('run-button');
+        const stopButton = document.getElementById('stop-button');
+        const resetButton = document.getElementById('reset-button');
+
+        // Sprite object
+        const sprite = {
+            x: stageCanvas.width / 2,
+            y: stageCanvas.height / 2,
+            rotation: 0, // 0 degrees is facing right (East)
+            size: 40, // Base size for the compass needle
+            text: '',
+            textTimer: null,
+            // Pen properties
+            isPenDown: false,
+            penColor: '#000000', // Default pen color (black)
+            penSize: 2,          // Default pen size
+            path: [],            // Stores drawing segments: [{x1, y1, x2, y2, color, size}, ...]
+
+            reset: function() {
+                this.x = stageCanvas.width / 2;
+                this.y = stageCanvas.height / 2;
+                this.rotation = 0; // Reset to face right (East)
+                this.text = '';
+                if (this.textTimer) {
+                    clearTimeout(this.textTimer);
+                    this.textTimer = null;
+                }
+                this.isPenDown = false; // Reset pen state
+                this.penColor = '#000000'; // Reset pen color
+                this.penSize = 2;          // Reset pen size
+                this.path = [];            // Clear drawing path
+                drawStage();
+            },
+            move: function(steps) {
+                const prevX = this.x;
+                const prevY = this.y;
+                const radians = this.rotation * Math.PI / 180;
+                this.x += steps * Math.cos(radians);
+                this.y += steps * Math.sin(radians);
+
+                if (this.isPenDown) {
+                    this.path.push({
+                        x1: prevX,
+                        y1: prevY,
+                        x2: this.x,
+                        y2: this.y,
+                        color: this.penColor,
+                        size: this.penSize
+                    });
+                }
+                drawStage();
+            },
+            turn: function(degrees) {
+                this.rotation += degrees;
+                this.rotation = (this.rotation % 360 + 360) % 360; // Keep between 0 and 359
+                drawStage();
+            },
+            say: function(message) {
+                this.text = message;
+                drawStage();
+                if (this.textTimer) clearTimeout(this.textTimer);
+                this.textTimer = setTimeout(() => {
+                    this.text = '';
+                    drawStage();
+                }, 2000); // Display for 2 seconds
+            },
+            wait: function(seconds) {
+                return new Promise(resolve => setTimeout(resolve, seconds * 1000));
+            },
+            penDown: function() {
+                this.isPenDown = true;
+            },
+            penUp: function() {
+                this.isPenDown = false;
+            },
+            setPenColor: function(color) {
+                this.penColor = color;
+            },
+            setPenSize: function(size) {
+                this.penSize = parseFloat(size);
+            },
+            clearDrawing: function() {
+                this.path = [];
+                drawStage();
+            }
+        };
+
+        // Block data (id, template function, default value, and command function)
+        const blockData = {
+            move_steps: {
+                text: '移动',
+                suffix: '步',
+                type: 'number',
+                defaultValue: 10,
+                command: (steps) => () => sprite.move(parseFloat(steps)),
+                isControlBlock: false // Not a control block
+            },
+            turn_degrees: {
+                text: '右转',
+                suffix: '度',
+                type: 'number',
+                defaultValue: 90,
+                command: (degrees) => () => sprite.turn(parseFloat(degrees)),
+                isControlBlock: false
+            },
+            turn_left_degrees: {
+                text: '左转',
+                suffix: '度',
+                type: 'number',
+                defaultValue: 90,
+                command: (degrees) => () => sprite.turn(-parseFloat(degrees)),
+                isControlBlock: false
+            },
+            say_message: {
+                text: '说',
+                suffix: '', // No suffix for say block
+                type: 'text',
+                defaultValue: 'Hello!',
+                command: (message) => () => sprite.say(message),
+                isControlBlock: false
+            },
+            wait_seconds: {
+                text: '等待',
+                suffix: '秒',
+                type: 'number',
+                defaultValue: 1,
+                command: (seconds) => () => sprite.wait(parseFloat(seconds)),
+                isControlBlock: true // Treat wait as a control block for loop boundary detection
+            },
+            repeat_times: {
+                text: '重复',
+                suffix: '次',
+                type: 'number',
+                defaultValue: 4,
+                command: null, // Special handling in runScript
+                isControlBlock: true // This is a control block
+            },
+            whenFlagClicked: {
+                text: '当 🚩 被点击',
+                suffix: '',
+                type: 'none', // No parameter
+                defaultValue: null,
+                command: null,
+                isControlBlock: true // This is an event/control block
+            },
+            // New Pen Blocks
+            pen_down: {
+                text: '落笔',
+                suffix: '',
+                type: 'none',
+                defaultValue: null,
+                command: () => () => sprite.penDown(),
+                isControlBlock: false
+            },
+            pen_up: {
+                text: '抬笔',
+                suffix: '',
+                type: 'none',
+                defaultValue: null,
+                command: () => () => sprite.penUp(),
+                isControlBlock: false
+            },
+            set_pen_color: {
+                text: '设置画笔颜色为',
+                suffix: '',
+                type: 'color',
+                defaultValue: '#000000',
+                command: (color) => () => sprite.setPenColor(color),
+                isControlBlock: false
+            },
+            set_pen_size: {
+                text: '设置画笔粗细为',
+                suffix: '',
+                type: 'number',
+                defaultValue: 2,
+                command: (size) => () => sprite.setPenSize(parseFloat(size)),
+                isControlBlock: false
+            },
+            clear_drawing: {
+                text: '清空画笔',
+                suffix: '',
+                type: 'none',
+                defaultValue: null,
+                command: () => () => sprite.clearDrawing(),
+                isControlBlock: false
+            }
+        };
+
+        let scriptCommands = []; // Stores blocks dragged into the script area
+        let isRunning = false; // Is script currently running
+        let executionPromise = Promise.resolve(); // Used for chaining async commands
+
+        // Draw stage and sprite (compass needle only)
+        function drawStage() {
+            ctx.clearRect(0, 0, stageCanvas.width, stageCanvas.height); // Clear canvas
+
+            // Draw pen trails first
+            sprite.path.forEach(segment => {
+                ctx.beginPath();
+                ctx.strokeStyle = segment.color;
+                ctx.lineWidth = segment.size;
+                ctx.lineCap = 'round'; // Make lines rounded
+                ctx.moveTo(segment.x1, segment.y1);
+                ctx.lineTo(segment.x2, segment.y2);
+                ctx.stroke();
+            });
+
+
+            ctx.save(); // Save current drawing state
+            ctx.translate(sprite.x, sprite.y); // Move origin to sprite center
+            ctx.rotate(sprite.rotation * Math.PI / 180); // Rotate canvas based on sprite rotation
+
+            // Draw compass needle (triangle)
+            // The needle will point right (East) when rotation is 0
+            // North (red part)
+            ctx.beginPath();
+            ctx.moveTo(sprite.size / 2, 0); // Right point (tip)
+            ctx.lineTo(0, -sprite.size / 8);   // Top left
+            ctx.lineTo(0, sprite.size / 8);    // Bottom left
+            ctx.closePath();
+            ctx.fillStyle = '#ef4444'; // Red for the "North" part (pointing direction)
+            ctx.fill();
+
+            // South (gray part)
+            ctx.beginPath();
+            ctx.moveTo(-sprite.size / 2, 0); // Left point (tail)
+            ctx.lineTo(0, -sprite.size / 8);   // Top right
+            ctx.lineTo(0, sprite.size / 8);    // Bottom right
+            ctx.closePath();
+            ctx.fillStyle = '#9ca3af'; // Gray for the "South" part
+            ctx.fill();
+
+            // Draw center pivot
+            ctx.beginPath();
+            ctx.arc(0, 0, sprite.size / 10, 0, Math.PI * 2);
+            ctx.fillStyle = '#333';
+            ctx.fill();
+
+            ctx.restore(); // Restore main drawing state
+
+            // Draw sprite's text bubble
+            if (sprite.text) {
+                ctx.fillStyle = '#333';
+                ctx.font = '16px Inter';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+                const textWidth = ctx.measureText(sprite.text).width;
+                const padding = 10;
+                const bubbleWidth = textWidth + padding * 2;
+                const bubbleHeight = 30;
+                const bubbleX = sprite.x - bubbleWidth / 2;
+                const bubbleY = sprite.y - sprite.size / 2 - bubbleHeight - 5; // Bubble above needle
+
+                ctx.fillStyle = '#ffffff'; // Bubble background
+                ctx.beginPath();
+                ctx.roundRect(bubbleX, bubbleY, bubbleWidth, bubbleHeight, 8);
+                ctx.fill();
+                ctx.strokeStyle = '#666'; // Bubble border
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                // Bubble tail
+                ctx.beginPath();
+                ctx.moveTo(sprite.x - 5, sprite.y - sprite.size / 2 - 5);
+                ctx.lineTo(sprite.x + 5, sprite.y - sprite.size / 2 - 5);
+                ctx.lineTo(sprite.x, sprite.y - sprite.size / 2);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.fillStyle = '#333'; // Text color
+                ctx.fillText(sprite.text, sprite.x, bubbleY + bubbleHeight - padding / 2);
+            }
+        }
+
+        // Initialize stage
+        sprite.reset();
+
+        // Drag and drop event handling
+        let draggedBlockId = null;
+
+        blockPalette.addEventListener('dragstart', (e) => {
+            if (e.target.classList.contains('block-item')) {
+                draggedBlockId = e.target.dataset.blockId;
+                e.dataTransfer.setData('text/plain', draggedBlockId); // Set data, though we primarily use draggedBlockId
+                e.dataTransfer.effectAllowed = 'copy'; // Allow copy
+            }
+        });
+
+        scriptArea.addEventListener('dragover', (e) => {
+            e.preventDefault(); // Allow drop
+            e.dataTransfer.dropEffect = 'copy';
+            scriptArea.classList.add('drag-over'); // Add drag-over style
+        });
+
+        scriptArea.addEventListener('dragleave', () => {
+            scriptArea.classList.remove('drag-over'); // Remove drag-over style
+        });
+
+        scriptArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            scriptArea.classList.remove('drag-over'); // Remove drag-over style
+
+            if (draggedBlockId) {
+                const blockInfo = blockData[draggedBlockId];
+                if (blockInfo) {
+                    // Hide placeholder
+                    scriptPlaceholder.classList.add('hidden');
+
+                    const newBlockElement = document.createElement('div');
+                    newBlockElement.classList.add('block-item', 'p-2', 'rounded-md', 'shadow-sm', 'text-white', 'text-sm', 'relative', 'group');
+                    newBlockElement.dataset.blockId = draggedBlockId; // Store original ID
+
+                    // Set color based on block type
+                    if (['move_steps', 'turn_degrees', 'turn_left_degrees'].includes(draggedBlockId)) {
+                        newBlockElement.classList.add('bg-blue-500');
+                    } else if (['say_message'].includes(draggedBlockId)) {
+                        newBlockElement.classList.add('bg-purple-500');
+                    } else if (['pen_down', 'pen_up', 'set_pen_color', 'set_pen_size', 'clear_drawing'].includes(draggedBlockId)) { // New pen blocks
+                        newBlockElement.classList.add('bg-green-500');
+                    } else if (['whenFlagClicked'].includes(draggedBlockId)) {
+                        newBlockElement.classList.add('bg-yellow-500');
+                    } else if (['wait_seconds', 'repeat_times'].includes(draggedBlockId)) {
+                        newBlockElement.classList.add('bg-orange-500');
+                    }
+
+                    // Add static text part before input
+                    const textBeforeInput = document.createElement('span');
+                    textBeforeInput.textContent = blockInfo.text;
+                    newBlockElement.appendChild(textBeforeInput);
+
+                    let paramInput = null;
+                    if (blockInfo.type !== 'none') {
+                        paramInput = document.createElement('input');
+                        paramInput.type = blockInfo.type;
+                        paramInput.value = blockInfo.defaultValue;
+                        paramInput.classList.add('block-param-input');
+                        // Prevent drag events from input field interfering with block drag
+                        paramInput.addEventListener('dragstart', (e) => e.stopPropagation());
+                        paramInput.addEventListener('mousedown', (e) => e.stopPropagation()); // Allow input focus
+                        paramInput.addEventListener('click', (e) => e.stopPropagation()); // Allow click to focus
+                        newBlockElement.appendChild(paramInput);
+                    }
+
+                    // Add static text part after input (suffix)
+                    if (blockInfo.suffix) {
+                        const textAfterInput = document.createElement('span');
+                        textAfterInput.textContent = blockInfo.suffix;
+                        newBlockElement.appendChild(textAfterInput);
+                    }
+
+                    // Add delete button
+                    const deleteButton = document.createElement('button');
+                    deleteButton.innerHTML = '&times;'; // Multiplication sign as delete icon
+                    deleteButton.classList.add(
+                        'absolute', 'top-0', 'right-0',
+                        'mt-[-12px]', 'mr-[-12px]', // Increased margin to move it further out
+                        'bg-red-500', 'hover:bg-red-600', 'text-white', 'rounded-full',
+                        'w-6', 'h-6', // Increased size
+                        'flex', 'items-center', 'justify-content', 'text-sm', 'font-bold', // Adjusted font size to fit
+                        'opacity-0', 'group-hover:opacity-100', 'transition-opacity'
+                    );
+                    // Prevent mousedown on delete button from triggering block click
+                    deleteButton.addEventListener('mousedown', (event) => {
+                        event.stopPropagation();
+                    });
+                    deleteButton.onclick = (event) => {
+                        event.stopPropagation(); // Prevent event bubbling to parent block
+                        // Find the index of the block in scriptCommands using its element reference
+                        const index = scriptCommands.findIndex(cmd => cmd.element === newBlockElement);
+                        if (index > -1) {
+                            scriptCommands.splice(index, 1); // Remove from scriptCommands array
+                            scriptArea.removeChild(newBlockElement); // Remove from DOM
+                            if (scriptArea.children.length === 1) { // If only placeholder left
+                                scriptPlaceholder.classList.remove('hidden');
+                            }
+                        }
+                    };
+                    newBlockElement.appendChild(deleteButton);
+
+                    // Add click handler for single block execution
+                    newBlockElement.addEventListener('click', async () => {
+                        if (isRunning) {
+                            console.log("Script is currently running. Cannot execute single block.");
+                            return;
+                        }
+
+                        // Highlight the clicked block
+                        newBlockElement.classList.add('ring-4', 'ring-blue-400', 'ring-offset-2');
+
+                        const clickedBlockId = newBlockElement.dataset.blockId;
+                        const clickedBlockInfo = blockData[clickedBlockId];
+                        const clickedParamValue = paramInput ? paramInput.value : null;
+
+                        if (clickedBlockInfo.command) {
+                            // Execute the command directly
+                            await clickedBlockInfo.command(clickedParamValue)();
+                        } else {
+                            // For control blocks or event blocks, just log or do nothing
+                            console.log(`Clicked block: ${clickedBlockInfo.text} (no direct stage effect)`);
+                        }
+
+                        // Remove highlight after a short delay
+                        setTimeout(() => {
+                            newBlockElement.classList.remove('ring-4', 'ring-blue-400', 'ring-offset-2');
+                        }, 200); // Highlight for 200ms
+                    });
+
+                    // Add visual container/child classes
+                    if (blockInfo.isControlBlock) {
+                        newBlockElement.classList.add('block-container');
+                    } else {
+                        // Check if the previous block is a container to indent
+                        const lastScriptCommand = scriptCommands[scriptCommands.length - 1];
+                        // Only add block-child if the last block is a container block
+                        if (lastScriptCommand && blockData[lastScriptCommand.id].isControlBlock) {
+                            newBlockElement.classList.add('block-child');
+                        }
+                    }
+
+
+                    scriptArea.appendChild(newBlockElement);
+                    // Store the block element reference and its initial parameter value
+                    scriptCommands.push({
+                        id: draggedBlockId,
+                        element: newBlockElement,
+                        paramInput: paramInput // Store reference to the input element
+                    });
+                }
+            }
+            draggedBlockId = null; // Reset
+        });
+
+        // Run script
+        async function runScript() {
+            if (isRunning) {
+                console.log("Script is already running.");
+                return;
+            }
+
+            isRunning = true;
+            runButton.disabled = true;
+            stopButton.disabled = false;
+            resetButton.disabled = true;
+            sprite.reset(); // Reset sprite before running
+
+            // Remove active state from all blocks
+            Array.from(scriptArea.children).forEach(child => {
+                if (child.classList.contains('block-item')) {
+                    child.classList.remove('ring-4', 'ring-green-400', 'ring-offset-2');
+                }
+            });
+
+            executionPromise = Promise.resolve(); // Ensure starting with a resolved Promise
+
+            // Create a copy of scriptCommands to allow for modification during repeat loops
+            const commandsToExecute = [...scriptCommands];
+            let i = 0;
+            while (i < commandsToExecute.length) {
+                if (!isRunning) {
+                    console.log("Script stopped.");
+                    break;
+                }
+
+                const commandObj = commandsToExecute[i];
+                const blockElement = commandObj.element; // Get the actual DOM element
+
+                if (blockElement && blockElement.classList.contains('block-item')) {
+                    blockElement.classList.add('ring-4', 'ring-green-400', 'ring-offset-2'); // Add active state
+
+                    const blockInfo = blockData[commandObj.id];
+                    let paramValue = commandObj.paramInput ? commandObj.paramInput.value : null;
+
+                    if (commandObj.id === 'whenFlagClicked') {
+                        // 'When Flag Clicked' acts as a script start.
+                        // It implicitly contains all subsequent blocks until another event/control block or end.
+                        await new Promise(resolve => setTimeout(resolve, 100)); // Briefly highlight
+                    } else if (commandObj.id === 'repeat_times') {
+                        const repeatCount = parseInt(paramValue || blockInfo.defaultValue);
+                        if (!isNaN(repeatCount) && repeatCount > 0) {
+                            const innerBlocks = [];
+                            let j = i + 1;
+                            // Collect blocks until another control block or end of script
+                            // Note: This simple logic assumes blocks are correctly ordered for nesting.
+                            // A more robust solution would involve a tree-like data structure for scriptCommands.
+                            while (j < commandsToExecute.length && !blockData[commandsToExecute[j].id].isControlBlock) {
+                                innerBlocks.push(commandsToExecute[j]);
+                                j++;
+                            }
+
+                            for (let k = 0; k < repeatCount; k++) {
+                                if (!isRunning) break;
+                                for (const innerCommandObj of innerBlocks) {
+                                    if (!isRunning) break;
+                                    const innerBlockElement = innerCommandObj.element;
+                                    const innerBlockInfo = blockData[innerCommandObj.id];
+                                    const innerParamValue = innerCommandObj.paramInput ? innerCommandObj.paramInput.value : null;
+
+                                    if (innerBlockElement && innerBlockElement.classList.contains('block-item')) {
+                                        innerBlockElement.classList.add('ring-4', 'ring-blue-400', 'ring-offset-2'); // Highlight inner blocks with different color
+                                    }
+
+                                    if (innerBlockInfo.command) {
+                                        await executionPromise;
+                                        executionPromise = Promise.resolve(innerBlockInfo.command(innerParamValue)());
+                                        await executionPromise;
+                                    }
+                                    if (innerBlockElement && innerBlockElement.classList.contains('block-item')) {
+                                        innerBlockElement.classList.remove('ring-4', 'ring-blue-400', 'ring-offset-2');
+                                    }
+                                }
+                            }
+                            // Advance 'i' past the blocks that were part of the repeat loop
+                            i += innerBlocks.length; // Move 'i' to the block *after* the repeated section
+                        }
+                    } else if (blockInfo.command) {
+                        await executionPromise; // Wait for previous async operation
+                        executionPromise = Promise.resolve(blockInfo.command(paramValue)());
+                        await executionPromise; // Wait for current command to complete
+                    }
+
+                    // Remove active state
+                    if (blockElement && blockElement.classList.contains('block-item')) {
+                        blockElement.classList.remove('ring-4', 'ring-green-400', 'ring-offset-2');
+                    }
+                }
+                i++; // Move to the next command
+            }
+
+            isRunning = false;
+            runButton.disabled = false;
+            stopButton.disabled = true;
+            resetButton.disabled = false;
+            console.log("Script execution finished.");
+        }
+
+        // Stop script
+        function stopScript() {
+            isRunning = false;
+            if (sprite.textTimer) {
+                clearTimeout(sprite.textTimer);
+                sprite.textTimer = null;
+                sprite.text = '';
+                drawStage();
+            }
+            // Remove active state from all blocks
+            Array.from(scriptArea.children).forEach(child => {
+                if (child.classList.contains('block-item')) {
+                    child.classList.remove('ring-4', 'ring-green-400', 'ring-offset-2', 'ring-blue-400'); // Also remove blue for inner repeat blocks
+                }
+            });
+            runButton.disabled = false;
+            stopButton.disabled = true;
+            resetButton.disabled = false;
+            console.log("Script manually stopped.");
+        }
+
+        // Reset application
+        function resetApp() {
+            stopScript(); // Ensure any running script is stopped
+            scriptCommands = []; // Clear commands
+            scriptArea.innerHTML = ''; // Clear script area
+            scriptArea.appendChild(scriptPlaceholder); // Re-display placeholder
+            scriptPlaceholder.classList.remove('hidden');
+            sprite.reset(); // Reset sprite state
+            runButton.disabled = false;
+            stopButton.disabled = true;
+            resetButton.disabled = false;
+            console.log("Application reset.");
+        }
+
+        // Bind button events
+        runButton.addEventListener('click', runScript);
+        stopButton.addEventListener('click', stopScript);
+        resetButton.addEventListener('click', resetApp);
+
+        // Initially disable stop button
+        stopButton.disabled = true;
+
+    </script>
+</body>
+</html>
