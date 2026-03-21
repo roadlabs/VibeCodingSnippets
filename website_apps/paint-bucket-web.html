@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>油漆桶 - 网页版</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            touch-action: manipulation;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 10px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+
+        .color-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .color-btn {
+            width: 60px;
+            height: 60px;
+            border: 3px solid #333;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .color-btn:active {
+            transform: scale(0.95);
+        }
+
+        .color-btn.red { background: #ff4444; color: white; }
+        .color-btn.blue { background: #4444ff; color: white; }
+        .color-btn.green { background: #44cc44; color: white; }
+
+        .canvas-container {
+            background: white;
+            border: 2px solid #333;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #drawingCanvas {
+            display: block;
+            width: 100%;
+            height: 300px;
+            background: white;
+            cursor: crosshair;
+        }
+
+        .status-bar {
+            background: #333;
+            color: white;
+            padding: 8px;
+            text-align: center;
+            font-size: 14px;
+            border-radius: 0 0 8px 8px;
+        }
+
+        .bottom-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+
+        .control-btn {
+            padding: 12px 16px;
+            font-size: 14px;
+            font-weight: bold;
+            border: 2px solid #333;
+            border-radius: 8px;
+            background: #fff;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 80px;
+        }
+
+        .control-btn:active {
+            transform: scale(0.95);
+            background: #eee;
+        }
+
+        .control-btn.erase { background: #ff6b6b; color: white; }
+        .control-btn.camera { background: #4ecdc4; color: white; }
+        .control-btn.large { background: #ffe66d; }
+        .control-btn.small { background: #ffe66d; }
+
+        .active {
+            background: #333 !important;
+            color: white !important;
+        }
+
+        .info {
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+
+        .brush-size-indicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: inline-block;
+            vertical-align: middle;
+            margin-left: 5px;
+        }
+
+        video {
+            display: none;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>油漆桶</h1>
+
+    <div class="color-buttons">
+        <button class="color-btn red active" data-color="#ff4444">红色</button>
+        <button class="color-btn blue" data-color="#4444ff">蓝色</button>
+        <button class="color-btn green" data-color="#44cc44">绿色</button>
+    </div>
+
+    <div class="canvas-container">
+        <canvas id="drawingCanvas"></canvas>
+        <div class="status-bar" id="statusBar">
+            画笔: <span id="currentColor">#ff4444</span>
+            | 大小: <span id="brushSize">2</span>
+            <span class="brush-size-indicator" id="brushIndicator" style="background: #ff4444;"></span>
+        </div>
+    </div>
+
+    <div class="bottom-controls">
+        <button class="control-btn erase" id="eraseBtn">擦除</button>
+        <button class="control-btn camera" id="cameraBtn">拍照</button>
+        <button class="control-btn large" id="largeBtn">大圆 (8)</button>
+        <button class="control-btn small active" id="smallBtn">小圆 (2)</button>
+    </div>
+
+    <div class="info">
+        手指点击画圆 • 手指拖动画线
+    </div>
+
+    <video id="cameraVideo" autoplay></video>
+    <input type="file" id="photoInput" accept="image/*" capture="environment" class="hidden">
+
+    <script>
+        const canvas = document.getElementById('drawingCanvas');
+        const ctx = canvas.getContext('2d');
+        const statusBar = document.getElementById('statusBar');
+        const currentColorSpan = document.getElementById('currentColor');
+        const brushSizeSpan = document.getElementById('brushSize');
+        const brushIndicator = document.getElementById('brushIndicator');
+
+        // State
+        let currentColor = '#ff4444';
+        let brushSize = 2;
+        let isDrawing = false;
+        let lastX = 0;
+        let lastY = 0;
+
+        // Resize canvas to match display size
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        // Initialize
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Color buttons
+        document.querySelectorAll('.color-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentColor = btn.dataset.color;
+                updateStatus();
+            });
+        });
+
+        // Brush size buttons
+        document.getElementById('largeBtn').addEventListener('click', () => {
+            brushSize = 8;
+            document.querySelectorAll('.control-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('largeBtn').classList.add('active');
+            updateStatus();
+        });
+
+        document.getElementById('smallBtn').addEventListener('click', () => {
+            brushSize = 2;
+            document.querySelectorAll('.control-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('smallBtn').classList.add('active');
+            updateStatus();
+        });
+
+        function updateStatus() {
+            currentColorSpan.textContent = currentColor;
+            brushSizeSpan.textContent = brushSize;
+            brushIndicator.style.background = currentColor;
+            brushIndicator.style.width = brushSize * 2 + 'px';
+            brushIndicator.style.height = brushSize * 2 + 'px';
+        }
+
+        updateStatus();
+
+        // Erase button
+        document.getElementById('eraseBtn').addEventListener('click', () => {
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        });
+
+        // Camera button
+        const cameraBtn = document.getElementById('cameraBtn');
+        const cameraVideo = document.getElementById('cameraVideo');
+        const photoInput = document.getElementById('photoInput');
+
+        cameraBtn.addEventListener('click', () => {
+            // For mobile: use file input with capture
+            if (/Mobi|Android/i.test(navigator.userAgent)) {
+                photoInput.click();
+            } else {
+                // For desktop: use getUserMedia
+                startCamera();
+            }
+        });
+
+        photoInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    setBackground(event.target.result);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                cameraVideo.srcObject = stream;
+                cameraVideo.style.display = 'block';
+                cameraVideo.style.position = 'fixed';
+                cameraVideo.style.top = '0';
+                cameraVideo.style.left = '0';
+                cameraVideo.style.width = '100%';
+                cameraVideo.style.height = '100%';
+                cameraVideo.style.zIndex = '9999';
+
+                // Add capture button overlay
+                const captureBtn = document.createElement('button');
+                captureBtn.textContent = '拍照';
+                captureBtn.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);padding:15px 30px;font-size:18px;background:#4ecdc4;color:white;border:none;border-radius:25px;z-index:10000;cursor:pointer;';
+                document.body.appendChild(captureBtn);
+
+                captureBtn.addEventListener('click', () => {
+                    const canvasCapture = document.createElement('canvas');
+                    canvasCapture.width = cameraVideo.videoWidth;
+                    canvasCapture.height = cameraVideo.videoHeight;
+                    const ctxCapture = canvasCapture.getContext('2d');
+                    ctxCapture.drawImage(cameraVideo, 0, 0);
+                    const dataUrl = canvasCapture.toDataURL('image/png');
+                    setBackground(dataUrl);
+
+                    // Cleanup
+                    stream.getTracks().forEach(track => track.stop());
+                    cameraVideo.style.display = 'none';
+                    captureBtn.remove();
+                });
+
+            } catch (err) {
+                alert('无法访问相机: ' + err.message);
+            }
+        }
+
+        function setBackground(dataUrl) {
+            const img = new Image();
+            img.onload = () => {
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            };
+            img.src = dataUrl;
+        }
+
+        // Drawing functions
+        function getCanvasCoords(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.clientX || e.touches[0].clientX;
+            const clientY = e.clientY || e.touches[0].clientY;
+            return {
+                x: clientX - rect.left,
+                y: clientY - rect.top
+            };
+        }
+
+        function drawCircle(x, y) {
+            ctx.fillStyle = currentColor;
+            ctx.beginPath();
+            ctx.arc(x, y, brushSize, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawLine(x1, y1, x2, y2) {
+            ctx.strokeStyle = currentColor;
+            ctx.lineWidth = brushSize * 2;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+        }
+
+        // Mouse events
+        canvas.addEventListener('mousedown', (e) => {
+            isDrawing = true;
+            const coords = getCanvasCoords(e);
+            lastX = coords.x;
+            lastY = coords.y;
+            drawCircle(lastX, lastY);
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isDrawing) return;
+            const coords = getCanvasCoords(e);
+            drawLine(lastX, lastY, coords.x, coords.y);
+            lastX = coords.x;
+            lastY = coords.y;
+        });
+
+        canvas.addEventListener('mouseup', () => isDrawing = false);
+        canvas.addEventListener('mouseleave', () => isDrawing = false);
+
+        // Touch events
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            isDrawing = true;
+            const coords = getCanvasCoords(e);
+            lastX = coords.x;
+            lastY = coords.y;
+            drawCircle(lastX, lastY);
+        }, { passive: false });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (!isDrawing) return;
+            const coords = getCanvasCoords(e);
+            drawLine(lastX, lastY, coords.x, coords.y);
+            lastX = coords.x;
+            lastY = coords.y;
+        }, { passive: false });
+
+        canvas.addEventListener('touchend', () => isDrawing = false);
+
+        // Mouse wheel to change brush size (desktop convenience)
+        canvas.addEventListener('wheel', (e) => {
+            if (e.deltaY < 0) {
+                brushSize = Math.min(20, brushSize + 1);
+            } else {
+                brushSize = Math.max(1, brushSize - 1);
+            }
+            updateStatus();
+        });
+    </script>
+</body>
+</html>

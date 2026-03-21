@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>出题与答题 - App Inventor</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            touch-action: manipulation;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .tabs {
+            display: flex;
+            background: #f5f5f5;
+            border-bottom: 2px solid #ddd;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab.active {
+            background: white;
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab:hover:not(.active) {
+            background: #eee;
+        }
+
+        .content {
+            padding: 30px;
+            min-height: 400px;
+        }
+
+        .panel {
+            display: none;
+        }
+
+        .panel.active {
+            display: block;
+        }
+
+        h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 24px;
+            text-align: center;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-bottom: 20px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin: 5px;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .questions-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 2px solid #eee;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            background: #f9f9f9;
+        }
+
+        .question-item {
+            padding: 10px;
+            margin-bottom: 10px;
+            background: white;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .question-text {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .answer-text {
+            color: #28a745;
+            font-size: 14px;
+        }
+
+        .empty-message {
+            text-align: center;
+            color: #999;
+            padding: 40px;
+            font-style: italic;
+        }
+
+        /* Quiz Mode Styles */
+        .quiz-question {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .quiz-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .option {
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 16px;
+        }
+
+        .option:hover {
+            border-color: #667eea;
+            background: #f0f0ff;
+        }
+
+        .option.selected {
+            border-color: #667eea;
+            background: #667eea;
+            color: white;
+        }
+
+        .option.correct {
+            border-color: #28a745;
+            background: #28a745;
+            color: white;
+        }
+
+        .option.wrong {
+            border-color: #dc3545;
+            background: #dc3545;
+            color: white;
+        }
+
+        .quiz-status {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .quiz-result {
+            text-align: center;
+            padding: 30px;
+            background: #f0f0f0;
+            border-radius: 15px;
+            margin-top: 20px;
+        }
+
+        .quiz-result h3 {
+            font-size: 22px;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .score-display {
+            font-size: 48px;
+            font-weight: bold;
+            color: #667eea;
+            margin: 20px 0;
+        }
+
+        .feedback {
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .feedback.correct {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .feedback.wrong {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .db-status {
+            font-size: 12px;
+            color: #999;
+            text-align: center;
+            margin-top: 20px;
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+
+        .sync-info {
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        @media (max-width: 480px) {
+            .content {
+                padding: 20px;
+            }
+            
+            h2 {
+                font-size: 20px;
+            }
+            
+            .quiz-question {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="tabs">
+            <div class="tab active" data-panel="creator">出题</div>
+            <div class="tab" data-panel="quiz">答题</div>
+        </div>
+
+        <div class="content">
+            <!-- Creator Panel -->
+            <div class="panel active" id="creator">
+                <h2>出题应用</h2>
+                <p style="text-align: center; color: #666; margin-bottom: 20px;">
+                    输入问题和答案，保存到共享数据库
+                </p>
+
+                <label for="questionInput">问题</label>
+                <input type="text" id="questionInput" placeholder="例如：中国的首都是哪里？">
+
+                <label for="answerInput">答案</label>
+                <input type="text" id="answerInput" placeholder="例如：北京">
+
+                <button class="btn-primary" id="saveBtn">保存到数据库</button>
+
+                <div class="sync-info">
+                    已保存到本地存储<br>
+                    <small>模拟网络数据库 - 同一浏览器可访问</small>
+                </div>
+
+                <div class="questions-list" id="questionsList">
+                    <div class="empty-message">暂无题目，请添加</div>
+                </div>
+
+                <button class="btn-danger" id="clearAllBtn" style="width: 100%; margin-top: 20px;">清空所有题目</button>
+            </div>
+
+            <!-- Quiz Panel -->
+            <div class="panel" id="quiz">
+                <h2>答题应用</h2>
+                <div class="quiz-status">
+                    <span id="quizProgress">第 0/0 题</span>
+                    <span id="quizScore">得分: 0</span>
+                </div>
+
+                <div id="quizContent">
+                    <div class="empty-message">
+                        数据库中没有题目<br>
+                        请先在"出题"标签中添加题目
+                    </div>
+                </div>
+
+                <button class="btn-primary" id="startQuizBtn" style="display: none;">开始答题</button>
+
+                <div class="db-status" id="dbStatus">
+                    等待加载数据...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simulated TinyWebDB using localStorage
+        class TinyWebDB {
+            constructor() {
+                this.storageKey = 'appInventor_quiz_data';
+                this.questions = this.load();
+            }
+
+            load() {
+                try {
+                    const data = localStorage.getItem(this.storageKey);
+                    return data ? JSON.parse(data) : { questions: [], answers: [] };
+                } catch (e) {
+                    console.error('Failed to load data:', e);
+                    return { questions: [], answers: [] };
+                }
+            }
+
+            save() {
+                try {
+                    localStorage.setItem(this.storageKey, JSON.stringify(this.questions));
+                } catch (e) {
+                    console.error('Failed to save data:', e);
+                }
+            }
+
+            // Simulate TinyWebDB's StoreValue
+            async storeValue(tag, value) {
+                // In real TinyWebDB, this would send to server
+                // Here we just save to localStorage
+                if (tag === '问题') {
+                    this.questions.questions = value;
+                } else if (tag === '答案') {
+                    this.questions.answers = value;
+                }
+                this.save();
+                return true;
+            }
+
+            // Simulate TinyWebDB's GetValue
+            async getValue(tag) {
+                // In real TinyWebDB, this would make a network request
+                // Here we return from localStorage immediately
+                if (tag === '问题') {
+                    return this.questions.questions || [];
+                } else if (tag === '答案') {
+                    return this.questions.answers || [];
+                }
+                return null;
+            }
+
+            getQuestions() {
+                return this.questions.questions || [];
+            }
+
+            getAnswers() {
+                return this.questions.answers || [];
+            }
+
+            // Clear all data
+            clear() {
+                this.questions = { questions: [], answers: [] };
+                this.save();
+            }
+        }
+
+        const db = new TinyWebDB();
+
+        // DOM Elements
+        const tabs = document.querySelectorAll('.tab');
+        const panels = document.querySelectorAll('.panel');
+        const questionInput = document.getElementById('questionInput');
+        const answerInput = document.getElementById('answerInput');
+        const saveBtn = document.getElementById('saveBtn');
+        const questionsList = document.getElementById('questionsList');
+        const clearAllBtn = document.getElementById('clearAllBtn');
+        const startQuizBtn = document.getElementById('startQuizBtn');
+        const quizContent = document.getElementById('quizContent');
+        const quizProgress = document.getElementById('quizProgress');
+        const quizScore = document.getElementById('quizScore');
+        const dbStatus = document.getElementById('dbStatus');
+
+        // Quiz state
+        let quizState = {
+            questions: [],
+            answers: [],
+            currentIndex: 0,
+            score: 0,
+            selectedAnswer: null,
+            answered: false
+        };
+
+        // Tab switching
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => t.classList.remove('active'));
+                panels.forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.panel).classList.add('active');
+
+                // Refresh data when switching to quiz
+                if (tab.dataset.panel === 'quiz') {
+                    loadQuizData();
+                }
+            });
+        });
+
+        // Load questions list in creator view
+        function renderQuestionsList() {
+            const questions = db.getQuestions();
+            const answers = db.getAnswers();
+
+            if (questions.length === 0) {
+                questionsList.innerHTML = '<div class="empty-message">暂无题目，请添加</div>';
+                return;
+            }
+
+            questionsList.innerHTML = questions.map((q, i) => `
+                <div class="question-item">
+                    <div class="question-text">${i + 1}. ${escapeHtml(q)}</div>
+                    <div class="answer-text">答案: ${escapeHtml(answers[i] || '无')}</div>
+                </div>
+            `).join('');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Save question and answer
+        saveBtn.addEventListener('click', async () => {
+            const question = questionInput.value.trim();
+            const answer = answerInput.value.trim();
+
+            if (!question || !answer) {
+                alert('请输入问题和答案');
+                return;
+            }
+
+            // Get current lists
+            const questions = db.getQuestions();
+            const answers = db.getAnswers();
+
+            // Add new question and answer
+            questions.push(question);
+            answers.push(answer);
+
+            // Save to "database"
+            await db.storeValue('问题', questions);
+            await db.storeValue('答案', answers);
+
+            // Clear inputs
+            questionInput.value = '';
+            answerInput.value = '';
+
+            // Refresh list
+            renderQuestionsList();
+
+            // Show feedback
+            const originalText = saveBtn.textContent;
+            saveBtn.textContent = '✓ 已保存';
+            saveBtn.style.background = '#28a745';
+            setTimeout(() => {
+                saveBtn.textContent = originalText;
+                saveBtn.style.background = '';
+            }, 1500);
+        });
+
+        // Clear all questions
+        clearAllBtn.addEventListener('click', async () => {
+            if (confirm('确定要清空所有题目吗？此操作不可撤销。')) {
+                db.clear();
+                renderQuestionsList();
+                dbStatus.textContent = '数据已清空';
+            }
+        });
+
+        // Load quiz data (simulating Screen1.Initialize)
+        async function loadQuizData() {
+            dbStatus.textContent = '正在从数据库加载数据...';
+            quizContent.innerHTML = '<div class="empty-message">加载中...</div>';
+            startQuizBtn.style.display = 'none';
+
+            try {
+                // Simulate the two separate GetValue requests
+                const questions = await db.getValue('问题');
+                const answers = await db.getValue('答案');
+
+                // Both lists should have same length
+                if (!questions || !answers || questions.length === 0 || answers.length === 0) {
+                    quizContent.innerHTML = '<div class="empty-message">数据库中没有题目<br>请先在"出题"标签中添加题目</div>';
+                    dbStatus.textContent = '没有找到数据';
+                    return;
+                }
+
+                quizState.questions = questions;
+                quizState.answers = answers;
+                quizState.currentIndex = 0;
+                quizState.score = 0;
+                quizState.answered = false;
+
+                dbStatus.textContent = `已加载 ${questions.length} 道题目`;
+                startQuizBtn.style.display = 'block';
+                startQuizBtn.onclick = startQuiz;
+            } catch (error) {
+                console.error('Failed to load quiz data:', error);
+                quizContent.innerHTML = '<div class="empty-message">加载数据失败</div>';
+                dbStatus.textContent = '错误: ' + error.message;
+            }
+        }
+
+        // Start quiz
+        function startQuiz() {
+            if (quizState.questions.length === 0) return;
+
+            quizState.currentIndex = 0;
+            quizState.score = 0;
+            quizState.answered = false;
+
+            showQuestion();
+            startQuizBtn.style.display = 'none';
+        }
+
+        // Display current question
+        function showQuestion() {
+            const idx = quizState.currentIndex;
+            const question = quizState.questions[idx];
+            const total = quizState.questions.length;
+
+            quizProgress.textContent = `第 ${idx + 1}/${total} 题`;
+            quizScore.textContent = `得分: ${quizState.score}`;
+
+            // Generate fake options (one correct, three random wrong)
+            const correctAnswer = quizState.answers[idx];
+            const allAnswers = [...new Set(quizState.answers)]; // Unique answers
+            const wrongAnswers = allAnswers
+                .filter(a => a !== correctAnswer)
+                .sort(() => Math.random() - 0.5)
+                .slice(0, 3);
+
+            const options = shuffleArray([correctAnswer, ...wrongAnswers]).slice(0, 4);
+
+            quizState.selectedAnswer = null;
+            quizState.answered = false;
+
+            quizContent.innerHTML = `
+                <div class="quiz-question">${escapeHtml(question)}</div>
+                <div class="quiz-options">
+                    ${options.map((opt, i) => `
+                        <div class="option" data-index="${i}" data-answer="${escapeHtml(opt)}">
+                            ${String.fromCharCode(65 + i)}. ${escapeHtml(opt)}
+                        </div>
+                    `).join('')}
+                </div>
+                <div id="quizFeedback"></div>
+                <button class="btn-primary" id="nextBtn" style="display: none;">下一题</button>
+            `;
+
+            // Add click handlers to options
+            document.querySelectorAll('.option').forEach(option => {
+                option.addEventListener('click', () => selectOption(option));
+            });
+        }
+
+        // Shuffle array
+        function shuffleArray(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        // Handle option selection
+        function selectOption(optionElement) {
+            if (quizState.answered) return;
+
+            quizState.answered = true;
+            quizState.selectedAnswer = optionElement.dataset.answer;
+            const correctAnswer = quizState.answers[quizState.currentIndex];
+            const isCorrect = quizState.selectedAnswer === correctAnswer;
+
+            // Disable all options
+            document.querySelectorAll('.option').forEach(opt => {
+                opt.style.pointerEvents = 'none';
+            });
+
+            // Mark selected
+            optionElement.classList.add(isCorrect ? 'correct' : 'wrong');
+
+            // Show correct answer if wrong
+            if (!isCorrect) {
+                document.querySelectorAll('.option').forEach(opt => {
+                    if (opt.dataset.answer === correctAnswer) {
+                        opt.classList.add('correct');
+                    }
+                });
+            }
+
+            // Update score
+            if (isCorrect) {
+                quizState.score++;
+                quizScore.textContent = `得分: ${quizState.score}`;
+            }
+
+            // Show feedback
+            const feedback = document.getElementById('quizFeedback');
+            feedback.className = 'feedback ' + (isCorrect ? 'correct' : 'wrong');
+            feedback.textContent = isCorrect ? '✓ 回答正确！' : `✗ 回答错误！正确答案是: ${correctAnswer}`;
+
+            // Show next button
+            const nextBtn = document.getElementById('nextBtn');
+            nextBtn.style.display = 'block';
+            nextBtn.onclick = () => {
+                quizState.currentIndex++;
+                if (quizState.currentIndex < quizState.questions.length) {
+                    showQuestion();
+                } else {
+                    showFinalScore();
+                }
+            };
+        }
+
+        // Show final score
+        function showFinalScore() {
+            const total = quizState.questions.length;
+            const percentage = Math.round((quizState.score / total) * 100);
+
+            let message = '';
+            if (percentage >= 90) message = '🏆 太棒了！你是学霸！';
+            else if (percentage >= 70) message = '👍 不错！继续努力！';
+            else if (percentage >= 60) message = '💪 及格了，还需要加油！';
+            else message = '📚 还需要多多学习哦！';
+
+            quizContent.innerHTML = `
+                <div class="quiz-result">
+                    <h3>答题完成！</h3>
+                    <div class="score-display">${quizState.score}/${total}</div>
+                    <p>正确率: ${percentage}%</p>
+                    <p style="font-size: 24px; margin-top: 10px;">${message}</p>
+                    <button class="btn-primary" onclick="restartQuiz()" style="margin-top: 20px;">重新答题</button>
+                </div>
+            `;
+
+            quizProgress.textContent = '完成';
+        }
+
+        // Restart quiz
+        function restartQuiz() {
+            loadQuizData();
+        }
+
+        // Initialize
+        renderQuestionsList();
+
+        // Auto-save on Enter in inputs
+        [questionInput, answerInput].forEach(input => {
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    saveBtn.click();
+                }
+            });
+        });
+
+        console.log('📝 Quiz app loaded!');
+    </script>
+</body>
+</html>
