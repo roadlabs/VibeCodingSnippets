@@ -64,6 +64,11 @@ body {
     background: #1976D2;
 }
 
+.btn-group {
+    display: flex;
+    gap: 4px;
+}
+
 #canvas {
     margin-top: 50px;
     width: 100%;
@@ -100,6 +105,41 @@ body {
     box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.3);
 }
 
+.node-root {
+    border-color: #4CAF50;
+    background: #f1f8e9;
+}
+
+.node-features {
+    border-color: #2196F3;
+    background: #e3f2fd;
+}
+
+.node-usage {
+    border-color: #9C27B0;
+    background: #f3e5f5;
+}
+
+.node-commands {
+    border-color: #FF9800;
+    background: #fff3e0;
+}
+
+.node-parameters {
+    border-color: #F44336;
+    background: #ffebee;
+}
+
+.node-examples {
+    border-color: #00BCD4;
+    background: #e0f7fa;
+}
+
+.node-notes {
+    border-color: #607D8B;
+    background: #eceff1;
+}
+
 .node-header {
     padding: 8px 12px;
     background: #fafafa;
@@ -108,6 +148,15 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
+}
+
+.node-type {
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: rgba(0,0,0,0.1);
+    color: #333;
+    font-weight: 500;
 }
 
 .node-title {
@@ -264,8 +313,15 @@ body {
 <body>
 <div id="toolbar">
     <h1>🦀 OpenClaw 思维导图技能生成器</h1>
-    <button class="btn" id="addRootBtn">添加根节点</button>
-    <button class="btn" id="addChildBtn">添加子节点</button>
+    <div class="btn-group">
+        <button class="btn" id="addRootBtn">添加 Root</button>
+        <button class="btn" id="addFeaturesBtn">添加 Features</button>
+        <button class="btn" id="addUsageBtn">添加 Usage</button>
+        <button class="btn" id="addCommandsBtn">添加 Commands</button>
+        <button class="btn" id="addParametersBtn">添加 Parameters</button>
+        <button class="btn" id="addExamplesBtn">添加 Examples</button>
+        <button class="btn" id="addNotesBtn">添加 Notes</button>
+    </div>
     <button class="btn" id="clearBtn">清空</button>
     <button class="btn primary" id="exportBtn">导出 ZIP</button>
 </div>
@@ -289,6 +345,10 @@ body {
             <label>技能描述</label>
             <input type="text" id="skillDescription" placeholder="这是一个什么技能">
         </div>
+        <div class="form-group">
+            <label>作者</label>
+            <input type="text" id="skillAuthor" placeholder="你的名字">
+        </div>
         <div class="modal-actions">
             <button class="btn" id="cancelExportBtn">取消</button>
             <button class="btn primary" id="confirmExportBtn">确认导出</button>
@@ -305,6 +365,17 @@ let nodeIdCounter = 0;
 let selectedNodeId = null;
 let selectedConnectionId = null;
 
+// 节点类型定义
+const NODE_TYPES = {
+    root: { name: 'Root', defaultTitle: 'Root', heading: null, color: '#4CAF50' },
+    features: { name: 'Features', defaultTitle: '功能特性', heading: '功能特性', color: '#2196F3' },
+    usage: { name: 'Usage', defaultTitle: '使用流程', heading: '使用流程', color: '#9C27B0' },
+    commands: { name: 'Commands', defaultTitle: '命令说明', heading: '命令说明', color: '#FF9800' },
+    parameters: { name: 'Parameters', defaultTitle: '参数定义', heading: '参数', color: '#F44336' },
+    examples: { name: 'Examples', defaultTitle: '使用示例', heading: '使用示例', color: '#00BCD4' },
+    notes: { name: 'Notes', defaultTitle: '备注说明', heading: '备注', color: '#607D8B' }
+};
+
 // 拖拽状态
 let isDraggingNode = false;
 let isDraggingCanvas = false;
@@ -315,7 +386,7 @@ let lastCanvasPos = { x: 0, y: 0 };
 
 // DOM 引用
 const canvas = document.getElementById('canvas');
-const connectionsSvg = document.getElementById('connections');
+let connectionsSvg = document.getElementById('connections');
 
 // 工具函数
 function generateId() {
@@ -338,12 +409,14 @@ function getNodeCenter(node) {
 }
 
 // 创建节点
-function createNode(x, y, title = '新节点', content = '') {
+function createNode(x, y, type, title = null, content = '') {
+    const typeConfig = NODE_TYPES[type];
     const node = {
         id: generateId(),
+        type: type,
         x: x,
         y: y,
-        title: title,
+        title: title || typeConfig.defaultTitle,
         content: content,
         width: 250,
         headerHeight: 40,
@@ -355,7 +428,7 @@ function createNode(x, y, title = '新节点', content = '') {
     return node;
 }
 
-function addChildNode(parentId) {
+function addChildNode(parentId, type = null) {
     const parent = nodes.find(n => n.id === parentId);
     if (!parent) return;
 
@@ -363,7 +436,14 @@ function addChildNode(parentId) {
     const x = parent.x + parent.width + 50 + siblings * 20;
     const y = parent.y + siblings * 160;
 
-    const child = createNode(x, y, '子节点', '');
+    let child;
+    if (type) {
+        child = createNode(x, y, type);
+    } else {
+        // 默认创建与父节点类型相适应的子节点
+        child = createNode(x, y, 'root', '子节点');
+    }
+
     connections.push({
         id: `${parentId}_${child.id}`,
         parentId: parentId,
@@ -373,6 +453,19 @@ function addChildNode(parentId) {
     selectNode(child.id);
     render();
     return child;
+}
+
+// 添加特定类型节点到画布
+function addNodeOfType(type) {
+    if (type === 'root' && nodes.some(n => n.type === 'root')) {
+        alert('只能有一个 Root 根节点');
+        return;
+    }
+
+    const rect = canvas.getBoundingClientRect();
+    const x = -125;
+    const y = nodes.length * 80 - 100;
+    createNode(x, y, type);
 }
 
 // 删除节点
@@ -414,8 +507,16 @@ function renderNode(node) {
     el.style.width = node.width + 'px';
     el.classList.toggle('selected', node.id === selectedNodeId);
 
+    // 添加类型样式
+    Object.keys(NODE_TYPES).forEach(t => {
+        el.classList.toggle(`node-${t}`, node.type === t);
+    });
+
+    const typeConfig = NODE_TYPES[node.type];
+
     el.innerHTML = `
         <div class="node-header">
+            <span class="node-type">${typeConfig.name}</span>
             <input type="text" class="node-title" value="${escapeHtml(node.title)}" placeholder="节点标题">
             <div class="node-actions">
                 <button class="icon-btn" title="添加子节点">+</button>
@@ -571,8 +672,137 @@ function render() {
     updateConnections();
 }
 
+// 根据类型收集内容并生成 SKILL.md
+function generateSkillMd(skillName, description, author) {
+    let md = `# ${skillName}\n\n`;
+
+    // 描述
+    if (description) {
+        md += `${description}\n\n`;
+    }
+
+    // 作者信息
+    if (author) {
+        md += `**作者:** ${author}\n\n`;
+    }
+
+    // 收集 Root 节点内容（除了元信息之外）
+    const rootNode = nodes.find(n => n.type === 'root');
+    if (rootNode && rootNode.content.trim()) {
+        md += `${rootNode.content.trim()}\n\n`;
+    }
+
+    // 按固定顺序收集各种类型的节点
+    const orderedTypes = ['features', 'usage', 'commands', 'parameters', 'examples', 'notes'];
+
+    orderedTypes.forEach(type => {
+        const nodesOfType = nodes.filter(n => n.type === type);
+        if (nodesOfType.length === 0) return;
+
+        const typeConfig = NODE_TYPES[type];
+        md += `## ${typeConfig.heading}\n\n`;
+
+        nodesOfType.forEach(node => {
+            if (node.content.trim()) {
+                // 如果有标题且不是默认标题，添加标题
+                if (node.title && node.title !== typeConfig.defaultTitle) {
+                    md += `### ${node.title}\n\n`;
+                }
+                md += `${node.content.trim()}\n\n`;
+            } else if (node.title && node.title !== typeConfig.defaultTitle) {
+                md += `- **${node.title}**\n`;
+            }
+        });
+
+        // 处理特殊格式
+        if (type === 'features' && !md.includes('- ')) {
+            // 如果没有列表格式，自动将每行转为列表项
+            const lines = md.split('\n');
+            const lastSectionStart = lines.lastIndexOf(`## ${typeConfig.heading}`);
+            const contentLines = lines.slice(lastSectionStart + 1).filter(l => l.trim());
+            if (contentLines.length > 0 && !contentLines[0].startsWith('- ')) {
+                // 重新生成该部分
+                let newSection = `## ${typeConfig.heading}\n\n`;
+                contentLines.forEach(line => {
+                    if (line.trim()) {
+                        newSection += `- ${line.trim()}\n`;
+                    }
+                });
+                newSection += '\n';
+                // 替换原来的部分
+                md = md.replace(`## ${typeConfig.heading}\n\n${contentLines.join('\n')}\n\n`, newSection);
+            }
+        } else if (type === 'usage' && !md.includes('1. ')) {
+            // 如果没有编号格式，自动将每行转为编号步骤
+            const lines = md.split('\n');
+            const lastSectionStart = lines.lastIndexOf(`## ${typeConfig.heading}`);
+            const contentLines = lines.slice(lastSectionStart + 1).filter(l => l.trim());
+            if (contentLines.length > 0 && !contentLines[0].match(/^\d+\. /)) {
+                let newSection = `## ${typeConfig.heading}\n\n`;
+                contentLines.forEach((line, index) => {
+                    if (line.trim()) {
+                        newSection += `${index + 1}. ${line.trim()}\n`;
+                    }
+                });
+                newSection += '\n';
+                md = md.replace(`## ${typeConfig.heading}\n\n${contentLines.join('\n')}\n\n`, newSection);
+            }
+        }
+    });
+
+    // 处理未归类的普通节点（保持树形结构输出）
+    const otherNodes = nodes.filter(n => !orderedTypes.includes(n.type) && n.type !== 'root');
+    if (otherNodes.length > 0) {
+        // 构建树形结构
+        function buildTree(parentId = null) {
+            const children = connections
+                .filter(c => c.parentId === parentId)
+                .map(c => nodes.find(n => n.id === c.childId))
+                .filter(n => n);
+            return children;
+        }
+
+        const rootChildren = buildTree(null);
+        if (rootChildren.length > 0) {
+            md += `## 其他内容\n\n`;
+            function writeNode(node, indent = 0) {
+                const prefix = '  '.repeat(indent);
+                md += `${prefix}- **${node.title}**\n`;
+                if (node.content.trim()) {
+                    const lines = node.content.trim().split('\n');
+                    lines.forEach(line => {
+                        md += `${prefix}  ${line}\n`;
+                    });
+                    md += '\n';
+                }
+                const children = buildTree(node.id);
+                children.forEach(child => writeNode(child, indent + 1));
+            }
+            rootChildren.forEach(root => writeNode(root, 0));
+            md += '\n';
+        }
+    }
+
+    return md.trim() + '\n';
+}
+
 // 导出 ZIP
 function showExportModal() {
+    // 尝试从 Root 节点预填充信息
+    const root = nodes.find(n => n.type === 'root');
+    if (root) {
+        // 猜测技能名称
+        if (root.title && root.title !== 'Root') {
+            document.getElementById('skillName').value = root.title;
+        }
+        // 内容中提取描述
+        if (root.content) {
+            const firstLine = root.content.split('\n')[0];
+            if (firstLine.length < 100) {
+                document.getElementById('skillDescription').value = firstLine;
+            }
+        }
+    }
     document.getElementById('modal').classList.add('active');
 }
 
@@ -583,60 +813,25 @@ function hideExportModal() {
 async function exportSkillZip() {
     const skillName = document.getElementById('skillName').value.trim();
     const description = document.getElementById('skillDescription').value.trim();
+    const author = document.getElementById('skillAuthor').value.trim();
 
     if (!skillName) {
         alert('请输入技能名称');
         return;
     }
 
+    // 检查是否有 Root 节点
+    if (!nodes.some(n => n.type === 'root')) {
+        if (!confirm('没有找到 Root 根节点，是否继续导出？')) {
+            return;
+        }
+    }
+
     const zip = new JSZip();
     const folder = zip.folder(skillName);
 
-    // 构建技能树结构 - 每个节点生成一个 section
-    function buildTree(parentId = null) {
-        const children = connections
-            .filter(c => c.parentId === parentId)
-            .map(c => nodes.find(n => n.id === c.childId))
-            .filter(n => n);
-
-        const result = [];
-        children.forEach(child => {
-            const item = {
-                title: child.title,
-                content: child.content,
-                children: buildTree(child.id)
-            };
-            result.push(item);
-        });
-        return result;
-    }
-
-    const rootNodes = nodes.filter(n => !connections.some(c => c.childId === n.id));
-    const tree = rootNodes.map(r => ({
-        title: r.title,
-        content: r.content,
-        children: buildTree(r.id)
-    }));
-
     // 生成 SKILL.md
-    let skillMd = `# ${skillName}\n\n`;
-    skillMd += `${description}\n\n`;
-    skillMd += `## Description\n\n`;
-
-    function writeNodeToMd(node, indent = 0) {
-        const prefix = '  '.repeat(indent);
-        skillMd += `${prefix}- **${node.title}**\n`;
-        if (node.content.trim()) {
-            const lines = node.content.trim().split('\n');
-            lines.forEach(line => {
-                skillMd += `${prefix}  ${line}\n`;
-            });
-            skillMd += '\n';
-        }
-        node.children.forEach(child => writeNodeToMd(child, indent + 1));
-    }
-
-    tree.forEach(root => writeNodeToMd(root, 0));
+    const skillMd = generateSkillMd(skillName, description, author);
 
     folder.file('SKILL.md', skillMd);
 
@@ -645,6 +840,7 @@ async function exportSkillZip() {
         name: skillName,
         version: '1.0.0',
         description: description,
+        author: author,
         main: 'SKILL.md',
         openclaw: {
             skill: true
@@ -654,7 +850,12 @@ async function exportSkillZip() {
 
     // 生成 README.md
     let readme = `# ${skillName}\n\n`;
-    readme += `${description}\n\n`;
+    if (description) {
+        readme += `${description}\n\n`;
+    }
+    if (author) {
+        readme += `**Author:** ${author}\n\n`;
+    }
     readme += `Created with OpenClaw 思维导图技能生成器\n`;
     folder.file('README.md', readme);
 
@@ -673,17 +874,13 @@ async function exportSkillZip() {
 }
 
 // 事件绑定
-document.getElementById('addRootBtn').addEventListener('click', () => {
-    createNode(-125, -100, '根节点', '');
-});
-
-document.getElementById('addChildBtn').addEventListener('click', () => {
-    if (selectedNodeId) {
-        addChildNode(selectedNodeId);
-    } else {
-        alert('请先选择一个节点');
-    }
-});
+document.getElementById('addRootBtn').addEventListener('click', () => addNodeOfType('root'));
+document.getElementById('addFeaturesBtn').addEventListener('click', () => addNodeOfType('features'));
+document.getElementById('addUsageBtn').addEventListener('click', () => addNodeOfType('usage'));
+document.getElementById('addCommandsBtn').addEventListener('click', () => addNodeOfType('commands'));
+document.getElementById('addParametersBtn').addEventListener('click', () => addNodeOfType('parameters'));
+document.getElementById('addExamplesBtn').addEventListener('click', () => addNodeOfType('examples'));
+document.getElementById('addNotesBtn').addEventListener('click', () => addNodeOfType('notes'));
 
 document.getElementById('clearBtn').addEventListener('click', () => {
     if (confirm('确定要清空所有节点吗？')) {
@@ -732,10 +929,12 @@ document.addEventListener('keydown', (e) => {
 // 初始化
 window.addEventListener('load', () => {
     centerCanvas();
-    // 创建一个示例
-    const root = createNode(-200, -80, '我的技能', '这是技能的主要功能描述。\n\n技能使用说明写在这里。');
-    addChildNode(root.id);
-    addChildNode(root.id);
+    // 创建一个示例结构
+    const root = createNode(-300, -100, 'root', 'Root', '技能描述写在这里');
+    createNode(100, -180, 'features', '功能特性', '- 功能1\n- 功能2\n- 功能3');
+    createNode(100, 0, 'usage', '使用流程', '安装\n配置\n使用');
+    createNode(100, 180, 'examples', '使用示例', '`命令示例`\n\n输出结果');
+    // 连接节点 (可选，保持拖拽自由)
 });
 
 window.addEventListener('resize', () => {
