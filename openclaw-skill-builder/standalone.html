@@ -7,7 +7,7 @@
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://unpkg.com/reactflow@11.10.4/dist/reactflow.min.js"></script>
+    <script src="https://unpkg.com/reactflow@11.10.4/dist/umd/react-flow.js"></script>
     <script src="https://unpkg.com/zustand@4.5.0/dist/zustand.umd.js"></script>
     <script src="https://unpkg.com/lucide-react@0.323.0/dist/umd/lucide-react.js"></script>
     <script src="https://unpkg.com/clsx@2.1.0/dist/clsx.umd.js"></script>
@@ -21,8 +21,8 @@
 
 <script type="text/babel">
 const { createRoot } = ReactDOM;
-const { clsx } = clsx;
-const { twMerge } = tailwindMerge;
+const clsx = window.clsx;
+const twMerge = window.tailwindMerge;
 const { create } = zustand;
 const { 
   ReactFlow, 
@@ -303,6 +303,8 @@ const useSkillStore = create((set, get) => ({
 }));
 
 // --- Markdown Renderer (simple) ---
+const cn = (...inputs) => twMerge(clsx(inputs));
+
 const renderMarkdown = (text) => {
   if (!text) return '';
   let html = text
@@ -354,7 +356,7 @@ function CustomNode({ data, selected, type, id }) {
 
   return (
     <div 
-      className={clsx(
+      className={cn(
         'rounded-lg shadow-md border-2 bg-white transition-all relative',
         selected ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-200',
       )}
@@ -854,17 +856,4 @@ function App() {
             导出 ZIP
           </button>
         </div>
-        <p className="text-[10px] text-gray-400 text-center">
-          所有更改自动保存到浏览器 localStorage
-        </p>
-      </div>
-    </div>
-  );
-}
-
-// --- Render ---
-const root = createRoot(document.getElementById('root'));
-root.render(<App />);
-</script>
-  </body>
-</html>
+        <p className="text-[10px
