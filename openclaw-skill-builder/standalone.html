@@ -9,7 +9,6 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://unpkg.com/reactflow@11.10.4/dist/umd/react-flow.js"></script>
     <script src="https://unpkg.com/zustand@4.5.0/dist/zustand.umd.js"></script>
-    <script src="https://unpkg.com/lucide-react@0.323.0/dist/umd/lucide-react.js"></script>
     <script src="https://unpkg.com/clsx@2.1.0/dist/clsx.umd.js"></script>
     <script src="https://unpkg.com/tailwind-merge@2.2.1/dist/tailwind-merge.umd.js"></script>
     <script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -53,7 +52,7 @@ const NODE_DEFINITIONS = {
     defaultTitle: 'Root',
     color: '#4CAF50',
     bgColor: '#4CAF5020',
-    icon: lucideReact.BookOpen,
+    emoji: '📖',
     defaultContent: '# 技能名称\n\n在这里描述你的技能功能。\n\n- **技能名称**: `skill-name`\n- **作者**: Your Name\n\n## 概述\n\n使用 Markdown 编写技能简介。'
   },
   [NODE_TYPES.FEATURES]: {
@@ -61,7 +60,7 @@ const NODE_DEFINITIONS = {
     defaultTitle: '功能特性',
     color: '#2196F3',
     bgColor: '#2196F320',
-    icon: lucideReact.Star,
+    emoji: '⭐',
     defaultContent: '## 功能特性\n\n- 特性一：描述功能\n- 特性二：描述功能\n- 特性三：描述功能'
   },
   [NODE_TYPES.USAGE]: {
@@ -69,7 +68,7 @@ const NODE_DEFINITIONS = {
     defaultTitle: '使用流程',
     color: '#9C27B0',
     bgColor: '#9C27B020',
-    icon: lucideReact.PlayCircle,
+    emoji: '▶️',
     defaultContent: '## 使用方法\n\n### 基本使用\n\n```\n/skill-name command\n```\n\n描述基本使用方法。'
   },
   [NODE_TYPES.COMMANDS]: {
@@ -77,7 +76,7 @@ const NODE_DEFINITIONS = {
     defaultTitle: '命令说明',
     color: '#FF9800',
     bgColor: '#FF980020',
-    icon: lucideReact.Terminal,
+    emoji: '⌨️',
     defaultContent: '## 命令列表\n\n### `command1`\n\n描述命令一的功能。\n\n### `command2`\n\n描述命令二的功能。'
   },
   [NODE_TYPES.PARAMETERS]: {
@@ -85,7 +84,7 @@ const NODE_DEFINITIONS = {
     defaultTitle: '参数定义',
     color: '#F44336',
     bgColor: '#F4433620',
-    icon: lucideReact.Settings,
+    emoji: '⚙️',
     defaultContent: '## 参数说明\n\n| 参数 | 类型 | 必填 | 说明 |\n|------|------|------|------|\n| `param1` | string | 是 | 参数一说明 |\n| `param2` | number | 否 | 参数二说明 |'
   },
   [NODE_TYPES.EXAMPLES]: {
@@ -93,7 +92,7 @@ const NODE_DEFINITIONS = {
     defaultTitle: '使用示例',
     color: '#00BCD4',
     bgColor: '#00BCD420',
-    icon: lucideReact.Code,
+    emoji: '💻',
     defaultContent: '## 使用示例\n\n### 示例一\n\n描述示例场景。\n\n```\n示例代码或命令\n```\n\n输出结果：\n```\n示例输出\n```'
   },
   [NODE_TYPES.NOTES]: {
@@ -101,7 +100,7 @@ const NODE_DEFINITIONS = {
     defaultTitle: '备注说明',
     color: '#607D8B',
     bgColor: '#607D8B20',
-    icon: lucideReact.FileText,
+    emoji: '📝',
     defaultContent: '## 备注\n\n在这里添加任何额外的说明、注意事项。\n\n- 注意事项一\n- 注意事项二'
   }
 };
@@ -352,7 +351,7 @@ function CustomNode({ data, selected, type, id }) {
     setIsEditing(true);
   };
 
-  const Icon = def.icon;
+  const emojiIcon = def.emoji;
 
   return (
     <div 
@@ -394,12 +393,12 @@ function CustomNode({ data, selected, type, id }) {
         <div className="p-3">
           <div className="flex items-center gap-2 mb-2 pb-2 border-b border-gray-100">
             <div className="p-1 rounded" style={{ backgroundColor: bgColor, color: color }}>
-              <Icon size={16} />
+              <span className="text-sm">{emojiIcon}</span>
             </div>
             <div className="font-semibold text-sm text-gray-800 truncate flex-1">
               {localTitle}
             </div>
-            <lucideReact.Edit3 size={14} className="text-gray-400 opacity-50" />
+            <span className="text-gray-400 opacity-50 text-sm">✏️</span>
           </div>
           <div 
             className="text-sm text-gray-700 overflow-auto max-h-[300px]"
@@ -736,7 +735,6 @@ function App() {
           <h2 className="font-semibold text-sm text-gray-700 mb-3">添加节点</h2>
           <div className="space-y-2">
             {Object.entries(NODE_DEFINITIONS).map(([type, def]) => {
-              const Icon = def.icon;
               return (
                 <button
                   key={type}
@@ -745,14 +743,14 @@ function App() {
                   style={{ borderLeftColor: def.color, borderLeftWidth: 4 }}
                 >
                   <div className="p-1.5 rounded" style={{ backgroundColor: def.bgColor, color: def.color }}>
-                    <Icon size={16} />
+                    <span>{def.emoji}</span>
                   </div>
                   <div className="text-left flex-1">
                     <div className="text-sm font-medium text-gray-700 group-hover:text-gray-900">
                       {def.name}
                     </div>
                   </div>
-                  <lucideReact.Plus size={14} className="opacity-50" />
+                  <span className="opacity-50 text-sm">➕</span>
                 </button>
               );
             })}
@@ -767,21 +765,21 @@ function App() {
               disabled={!selectedNodeId}
               className="w-full flex items-center gap-2 px-3 py-2 rounded border border-red-200 hover:bg-red-50 text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <lucideReact.Trash2 size={16} />
+              <span>🗑️</span>
               <span className="text-sm">删除选中节点</span>
             </button>
             <button
               onClick={autoLayout}
               className="w-full flex items-center gap-2 px-3 py-2 rounded border border-blue-200 hover:bg-blue-50 text-blue-600"
             >
-              <lucideReact.Layout size={16} />
+              <span>📐</span>
               <span className="text-sm">自动排列布局</span>
             </button>
             <button
               onClick={reset}
               className="w-full flex items-center gap-2 px-3 py-2 rounded border border-gray-200 hover:bg-gray-50 text-gray-600"
             >
-              <lucideReact.RefreshCw size={16} />
+              <span>🔄</span>
               <span className="text-sm">重置画布</span>
             </button>
           </div>
@@ -794,7 +792,7 @@ function App() {
               onClick={handleExportJson}
               className="w-full flex items-center gap-2 px-3 py-2 rounded border border-gray-200 hover:bg-gray-50 text-gray-600"
             >
-              <lucideReact.Download size={16} />
+              <span>📥</span>
               <span className="text-sm">导出项目 JSON</span>
             </button>
           </div>
@@ -834,7 +832,7 @@ function App() {
       {/* Right Bottom - Deploy & Test Panel */}
       <div className="fixed bottom-4 right-4 z-20 w-72 bg-white rounded-xl shadow-xl border p-4 space-y-3">
         <h3 className="font-bold text-gray-800 flex items-center gap-2">
-          <lucideReact.Upload size={18} />
+          <span>⬆️</span>
           部署测试
         </h3>
         <p className="text-xs text-gray-500">
@@ -845,15 +843,28 @@ function App() {
             onClick={handleTest}
             className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
           >
-            <lucideReact.TestTube size={18} />
+            <span>🧪</span>
             测试生成
           </button>
           <button
             onClick={handleExportZip}
             className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold"
           >
-            <lucideReact.DownloadCloud size={18} />
+            <span>☁️</span>
             导出 ZIP
           </button>
-        </div>
-        <p className="text-[10px
+        </p>
+        <p className="text-[10px] text-gray-400 text-center mt-2">
+          OpenClaw Skill Builder • Visual Editor
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// --- Render ---
+const root = createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+  </body>
+</html>
