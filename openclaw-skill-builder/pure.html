@@ -11,11 +11,15 @@
     padding: 0;
 }
 
+html, body {
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     background: #f5f5f5;
-    height: 100vh;
-    overflow: hidden;
 }
 
 #toolbar {
@@ -28,7 +32,7 @@ body {
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     display: flex;
     align-items: center;
-    padding: 0 16px;
+    padding: 0 8px;
     gap: 8px;
     z-index: 1000;
 }
@@ -38,6 +42,7 @@ body {
     font-weight: 600;
     margin-right: auto;
     color: #333;
+    padding-left: 8px;
 }
 
 .btn {
@@ -67,6 +72,7 @@ body {
 .btn-group {
     display: flex;
     gap: 4px;
+    flex-wrap: wrap;
 }
 
 #canvas {
@@ -232,25 +238,26 @@ body {
 /* 部署&测试面板 */
 #deployPanel {
     position: fixed;
-    bottom: 140px;
-    right: 16px;
+    top: 50px;
+    right: 0;
+    bottom: 0;
     width: 280px;
-    background: rgba(255,255,255,0.95);
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    background: rgba(255,255,255,0.98);
+    border-left: 1px solid #ddd;
+    box-shadow: -2px 0 8px rgba(0,0,0,0.1);
     transition: all 0.3s;
     z-index: 900;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 #deployPanel.collapsed {
-    height: 40px;
+    width: 40px;
 }
 
 #deployPanel.expanded {
-    height: auto;
-    max-height: calc(100vh - 200px);
+    width: 280px;
 }
 
 .deploy-panel-header {
@@ -261,12 +268,17 @@ body {
     background: #fafafa;
     border-bottom: 1px solid #eee;
     cursor: pointer;
+    flex-shrink: 0;
 }
 
 .deploy-panel-header h3 {
     font-size: 14px;
     font-weight: 600;
     color: #333;
+}
+
+#deployPanel.collapsed .deploy-panel-header h3 {
+    display: none;
 }
 
 .toggle-btn {
@@ -289,6 +301,8 @@ body {
 
 .deploy-panel-content {
     padding: 12px;
+    overflow-y: auto;
+    flex: 1;
 }
 
 #deployPanel.collapsed .deploy-panel-content {
@@ -364,15 +378,19 @@ body {
 
 #minimap {
     position: fixed;
-    bottom: 16px;
-    right: 16px;
+    bottom: 0;
+    right: 0;
     width: 180px;
     height: 120px;
     background: rgba(255,255,255,0.9);
-    border: 1px solid #ddd;
-    border-radius: 8px;
+    border-top: 1px solid #ddd;
+    border-left: 1px solid #ddd;
     overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    box-shadow: -2px -2px 8px rgba(0,0,0,0.1);
+}
+
+#deployPanel.collapsed ~ #minimap {
+    right: 40px;
 }
 
 #modal {
@@ -440,6 +458,88 @@ body {
     pointer-events: none;
     z-index: 3000;
     display: none;
+}
+
+/* 画布调整，给右侧面板留出空间 */
+#canvas {
+    margin-right: 280px;
+    width: calc(100% - 280px);
+}
+
+#deployPanel.collapsed ~ #canvas {
+    margin-right: 40px;
+    width: calc(100% - 40px);
+}
+
+/* 响应式设计 */
+@media (max-width: 900px) {
+    #toolbar {
+        height: auto;
+        min-height: 50px;
+        padding: 4px;
+        flex-wrap: wrap;
+    }
+    
+    #toolbar h1 {
+        width: 100%;
+        margin: 4px 0;
+        padding-left: 4px;
+    }
+    
+    #deployPanel {
+        width: 100%;
+        top: auto;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        height: 280px;
+        border-left: none;
+        border-top: 1px solid #ddd;
+    }
+    
+    #deployPanel.collapsed {
+        width: 100%;
+        height: 40px;
+    }
+    
+    #deployPanel.expanded {
+        width: 100%;
+        height: 280px;
+    }
+    
+    #canvas {
+        margin-top: 50px;
+        margin-right: 0;
+        margin-bottom: 280px;
+        width: 100%;
+        height: calc(100vh - 50px - 280px);
+    }
+    
+    #deployPanel.collapsed ~ #canvas {
+        margin-right: 0;
+        margin-bottom: 40px;
+        width: 100%;
+        height: calc(100vh - 50px - 40px);
+    }
+    
+    #minimap {
+        display: none;
+    }
+    
+    #deployPanel.collapsed ~ #minimap {
+        right: 0;
+    }
+}
+
+@media (max-width: 600px) {
+    .btn-group {
+        gap: 2px;
+    }
+    
+    .btn {
+        padding: 4px 8px;
+        font-size: 12px;
+    }
 }
 </style>
 </head>
@@ -592,6 +692,10 @@ function toggleDeployPanel() {
         toggleBtn.textContent = '+';
         localStorage.setItem('openclaw_deploy_panel_collapsed', 'true');
     }
+    // 重新调整画布大小
+    setTimeout(() => {
+        render();
+    }, 300);
 }
 
 // 加载面板折叠状态
@@ -958,365 +1062,3 @@ function updateConnections() {
 // 选择节点
 function selectNode(nodeId) {
     selectedNodeId = nodeId;
-    selectedConnectionId = null;
-    render();
-}
-
-// 拖拽处理
-function startNodeDrag(e) {
-    if (e.target.closest('input') || e.target.closest('textarea') || e.target.closest('button')) {
-        return;
-    }
-
-    isDraggingNode = true;
-    dragNode = nodes.find(n => n.id === e.currentTarget.getAttribute('data-node-id'));
-    const rect = e.currentTarget.getBoundingClientRect();
-    dragOffset.x = e.clientX - rect.left;
-    dragOffset.y = e.clientY - rect.top;
-    document.body.style.cursor = 'grabbing';
-    e.preventDefault();
-}
-
-function onMouseMove(e) {
-    if (isDraggingNode && dragNode) {
-        const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left - canvasOrigin.x - dragOffset.x;
-        const y = e.clientY - rect.top - canvasOrigin.y - dragOffset.y;
-        dragNode.x = x;
-        dragNode.y = y;
-        render();
-    } else if (isDraggingCanvas) {
-        const dx = e.clientX - lastCanvasPos.x;
-        const dy = e.clientY - lastCanvasPos.y;
-        canvasOrigin.x += dx;
-        canvasOrigin.y += dy;
-        lastCanvasPos = { x: e.clientX, y: e.clientY };
-        render();
-    }
-}
-
-function onMouseUp() {
-    if (isDraggingNode) {
-        isDraggingNode = false;
-        dragNode = null;
-        document.body.style.cursor = '';
-    }
-    if (isDraggingCanvas) {
-        isDraggingCanvas = false;
-        canvas.classList.remove('dragging');
-    }
-}
-
-function startCanvasDrag(e) {
-    if (e.target === canvas || e.target === connectionsSvg) {
-        isDraggingCanvas = true;
-        canvas.classList.add('dragging');
-        lastCanvasPos = { x: e.clientX, y: e.clientY };
-        selectedNodeId = null;
-        selectedConnectionId = null;
-        render();
-        e.preventDefault();
-    }
-}
-
-// 完整渲染
-function render() {
-    nodes.forEach(node => renderNode(node));
-    updateConnections();
-}
-
-// 根据类型收集内容并生成 SKILL.md
-function generateSkillMd(skillName, description, author) {
-    let md = `# ${skillName}\n\n`;
-
-    // 描述
-    if (description) {
-        md += `${description}\n\n`;
-    }
-
-    // 作者信息
-    if (author) {
-        md += `**作者:** ${author}\n\n`;
-    }
-
-    // 收集 Root 节点内容（除了元信息之外）
-    const rootNode = nodes.find(n => n.type === 'root');
-    if (rootNode && rootNode.content.trim()) {
-        md += `${rootNode.content.trim()}\n\n`;
-    }
-
-    // 按固定顺序收集各种类型的节点
-    const orderedTypes = ['features', 'usage', 'commands', 'parameters', 'examples', 'notes'];
-
-    orderedTypes.forEach(type => {
-        const nodesOfType = nodes.filter(n => n.type === type);
-        if (nodesOfType.length === 0) return;
-
-        const typeConfig = NODE_TYPES[type];
-        md += `## ${typeConfig.heading}\n\n`;
-
-        nodesOfType.forEach(node => {
-            if (node.content.trim()) {
-                // 如果有标题且不是默认标题，添加标题
-                if (node.title && node.title !== typeConfig.defaultTitle) {
-                    md += `### ${node.title}\n\n`;
-                }
-                md += `${node.content.trim()}\n\n`;
-            } else if (node.title && node.title !== typeConfig.defaultTitle) {
-                md += `- **${node.title}**\n`;
-            }
-        });
-
-        // 处理特殊格式
-        if (type === 'features' && !md.includes('- ')) {
-            // 如果没有列表格式，自动将每行转为列表项
-            const lines = md.split('\n');
-            const lastSectionStart = lines.lastIndexOf(`## ${typeConfig.heading}`);
-            const contentLines = lines.slice(lastSectionStart + 1).filter(l => l.trim());
-            if (contentLines.length > 0 && !contentLines[0].startsWith('- ')) {
-                // 重新生成该部分
-                let newSection = `## ${typeConfig.heading}\n\n`;
-                contentLines.forEach(line => {
-                    if (line.trim()) {
-                        newSection += `- ${line.trim()}\n`;
-                    }
-                });
-                newSection += '\n';
-                // 替换原来的部分
-                md = md.replace(`## ${typeConfig.heading}\n\n${contentLines.join('\n')}\n\n`, newSection);
-            }
-        } else if (type === 'usage' && !md.includes('1. ')) {
-            // 如果没有编号格式，自动将每行转为编号步骤
-            const lines = md.split('\n');
-            const lastSectionStart = lines.lastIndexOf(`## ${typeConfig.heading}`);
-            const contentLines = lines.slice(lastSectionStart + 1).filter(l => l.trim());
-            if (contentLines.length > 0 && !contentLines[0].match(/^\d+\. /)) {
-                let newSection = `## ${typeConfig.heading}\n\n`;
-                contentLines.forEach((line, index) => {
-                    if (line.trim()) {
-                        newSection += `${index + 1}. ${line.trim()}\n`;
-                    }
-                });
-                newSection += '\n';
-                md = md.replace(`## ${typeConfig.heading}\n\n${contentLines.join('\n')}\n\n`, newSection);
-            }
-        }
-    });
-
-    // 处理未归类的普通节点（保持树形结构输出）
-    const otherNodes = nodes.filter(n => !orderedTypes.includes(n.type) && n.type !== 'root');
-    if (otherNodes.length > 0) {
-        // 构建树形结构
-        function buildTree(parentId = null) {
-            const children = connections
-                .filter(c => c.parentId === parentId)
-                .map(c => nodes.find(n => n.id === c.childId))
-                .filter(n => n);
-            return children;
-        }
-
-        const rootChildren = buildTree(null);
-        if (rootChildren.length > 0) {
-            md += `## 其他内容\n\n`;
-            function writeNode(node, indent = 0) {
-                const prefix = '  '.repeat(indent);
-                md += `${prefix}- **${node.title}**\n`;
-                if (node.content.trim()) {
-                    const lines = node.content.trim().split('\n');
-                    lines.forEach(line => {
-                        md += `${prefix}  ${line}\n`;
-                    });
-                    md += '\n';
-                }
-                const children = buildTree(node.id);
-                children.forEach(child => writeNode(child, indent + 1));
-            }
-            rootChildren.forEach(root => writeNode(root, 0));
-            md += '\n';
-        }
-    }
-
-    return md.trim() + '\n';
-}
-
-// 导出 ZIP
-function showExportModal() {
-    // 尝试从 Root 节点预填充信息
-    const root = nodes.find(n => n.type === 'root');
-    if (root) {
-        // 猜测技能名称
-        if (root.title && root.title !== 'Root') {
-            document.getElementById('skillName').value = root.title;
-        }
-        // 内容中提取描述
-        if (root.content) {
-            const firstLine = root.content.split('\n')[0];
-            if (firstLine.length < 100) {
-                document.getElementById('skillDescription').value = firstLine;
-            }
-        }
-    }
-    document.getElementById('modal').classList.add('active');
-}
-
-function hideExportModal() {
-    document.getElementById('modal').classList.remove('active');
-}
-
-async function exportSkillZip() {
-    const skillName = document.getElementById('skillName').value.trim();
-    const description = document.getElementById('skillDescription').value.trim();
-    const author = document.getElementById('skillAuthor').value.trim();
-
-    if (!skillName) {
-        alert('请输入技能名称');
-        return;
-    }
-
-    // 检查是否有 Root 节点
-    if (!nodes.some(n => n.type === 'root')) {
-        if (!confirm('没有找到 Root 根节点，是否继续导出？')) {
-            return;
-        }
-    }
-
-    const zip = new JSZip();
-    const folder = zip.folder(skillName);
-
-    // 生成 SKILL.md
-    const skillMd = generateSkillMd(skillName, description, author);
-
-    folder.file('SKILL.md', skillMd);
-
-    // 生成 package.json (符合 OpenClaw 规范)
-    const pkg = {
-        name: skillName,
-        version: '1.0.0',
-        description: description,
-        author: author,
-        main: 'SKILL.md',
-        openclaw: {
-            skill: true
-        }
-    };
-    folder.file('package.json', JSON.stringify(pkg, null, 2));
-
-    // 生成 README.md
-    let readme = `# ${skillName}\n\n`;
-    if (description) {
-        readme += `${description}\n\n`;
-    }
-    if (author) {
-        readme += `**Author:** ${author}\n\n`;
-    }
-    readme += `Created with OpenClaw 思维导图技能生成器\n`;
-    folder.file('README.md', readme);
-
-    // 保存并下载
-    const content = await zip.generateAsync({ type: 'blob' });
-    const url = URL.createObjectURL(content);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${skillName}.zip`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-
-    hideExportModal();
-}
-
-// 事件绑定
-document.getElementById('addRootBtn').addEventListener('click', () => addNodeOfType('root'));
-document.getElementById('addFeaturesBtn').addEventListener('click', () => addNodeOfType('features'));
-document.getElementById('addUsageBtn').addEventListener('click', () => addNodeOfType('usage'));
-document.getElementById('addCommandsBtn').addEventListener('click', () => addNodeOfType('commands'));
-document.getElementById('addParametersBtn').addEventListener('click', () => addNodeOfType('parameters'));
-document.getElementById('addExamplesBtn').addEventListener('click', () => addNodeOfType('examples'));
-document.getElementById('addNotesBtn').addEventListener('click', () => addNodeOfType('notes'));
-
-document.getElementById('clearBtn').addEventListener('click', () => {
-    if (confirm('确定要清空所有节点吗？')) {
-        nodes = [];
-        connections = [];
-        selectedNodeId = null;
-        selectedConnectionId = null;
-        canvas.innerHTML = '<svg id="connections" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"></svg>';
-        connectionsSvg = document.getElementById('connections');
-    }
-});
-
-document.getElementById('exportBtn').addEventListener('click', () => {
-    if (nodes.length === 0) {
-        alert('至少需要一个节点才能导出');
-        return;
-    }
-    showExportModal();
-});
-
-document.getElementById('cancelExportBtn').addEventListener('click', hideExportModal);
-document.getElementById('confirmExportBtn').addEventListener('click', exportSkillZip);
-
-document.getElementById('modal').addEventListener('click', (e) => {
-    if (e.target === document.getElementById('modal')) {
-        hideExportModal();
-    }
-});
-
-// 部署&测试事件绑定
-document.getElementById('toggleDeployPanel').addEventListener('click', (e) => {
-    e.stopPropagation();
-    toggleDeployPanel();
-});
-
-document.getElementById('deployPanelHeader').addEventListener('click', () => {
-    if (document.getElementById('deployPanel').classList.contains('collapsed')) {
-        toggleDeployPanel();
-    }
-});
-
-document.getElementById('deployBtn').addEventListener('click', deploySkill);
-document.getElementById('testBtn').addEventListener('click', openTestChat);
-
-// 输入变化时自动保存
-document.getElementById('deployUrl').addEventListener('change', saveDeployConfig);
-document.getElementById('deployToken').addEventListener('change', saveDeployConfig);
-document.getElementById('testChatUrl').addEventListener('change', saveDeployConfig);
-
-canvas.addEventListener('mousedown', startCanvasDrag);
-document.addEventListener('mousemove', onMouseMove);
-document.addEventListener('mouseup', onMouseUp);
-
-// 键盘快捷键
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Delete' && selectedNodeId) {
-        deleteNode(selectedNodeId);
-    }
-    if (e.key === 'Escape') {
-        selectedNodeId = null;
-        selectedConnectionId = null;
-        render();
-    }
-});
-
-// 初始化
-window.addEventListener('load', () => {
-    centerCanvas();
-    // 加载部署配置
-    loadDeployConfig();
-    // 加载面板状态
-    loadPanelState();
-    // 创建一个示例结构
-    const root = createNode(-300, -100, 'root', 'Root', '技能描述写在这里');
-    createNode(100, -180, 'features', '功能特性', '- 功能1\n- 功能2\n- 功能3');
-    createNode(100, 0, 'usage', '使用流程', '安装\n配置\n使用');
-    createNode(100, 180, 'examples', '使用示例', '`命令示例`\n\n输出结果');
-    // 连接节点 (可选，保持拖拽自由)
-});
-
-window.addEventListener('resize', () => {
-    render();
-});
-</script>
-</body>
-</html>
