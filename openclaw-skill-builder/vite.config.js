@@ -3,7 +3,11 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  base: '/VibeCodingSnippets/openclaw-skill-builder/',
+  base: './',
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets'
+  },
   server: {
     port: 3000,
     open: true
