@@ -50,59 +50,59 @@ const NODE_TYPES = {
 const NODE_DEFINITIONS = {
   [NODE_TYPES.ROOT]: {
     name: 'Root',
-    defaultTitle: 'Root',
+    defaultTitle: '根节点',
     color: '#4CAF50',
     bgColor: '#4CAF5020',
     emoji: '📖',
-    defaultContent: '# 技能名称\n\n在这里描述你的技能功能。\n\n- **技能名称**: `skill-name`\n- **作者**: Your Name\n\n## 概述\n\n使用 Markdown 编写技能简介。'
+    defaultContent: '# 技能名称\n\n- **技能 ID**: `skill-name`\n- **技能名称**: 技能显示名称\n- **作者**: Your Name\n- **描述**: 一句话描述这个技能做什么的'
   },
   [NODE_TYPES.FEATURES]: {
-    name: 'Features',
+    name: '功能特性',
     defaultTitle: '功能特性',
     color: '#2196F3',
     bgColor: '#2196F320',
     emoji: '⭐',
-    defaultContent: '## 功能特性\n\n- 特性一：描述功能\n- 特性二：描述功能\n- 特性三：描述功能'
+    defaultContent: '## 功能特性\n\n- 功能一：简要描述这个功能能做什么\n- 功能二：简要描述这个功能能做什么\n- 功能三：简要描述这个功能能做什么'
   },
   [NODE_TYPES.USAGE]: {
-    name: 'Usage',
+    name: '使用流程',
     defaultTitle: '使用流程',
     color: '#9C27B0',
     bgColor: '#9C27B020',
     emoji: '▶️',
-    defaultContent: '## 使用方法\n\n### 基本使用\n\n```\n/skill-name command\n```\n\n描述基本使用方法。'
+    defaultContent: '## 使用流程\n\n1. 第一步：做什么\n2. 第二步：做什么\n3. 第三步：得到结果'
   },
   [NODE_TYPES.COMMANDS]: {
-    name: 'Commands',
+    name: '命令说明',
     defaultTitle: '命令说明',
     color: '#FF9800',
     bgColor: '#FF980020',
     emoji: '⌨️',
-    defaultContent: '## 命令列表\n\n### `command1`\n\n描述命令一的功能。\n\n### `command2`\n\n描述命令二的功能。'
+    defaultContent: '## 命令说明\n\n### `/command-name subcommand1`\n\n描述这个命令的功能和用法。\n\n### `/command-name subcommand2`\n\n描述这个命令的功能和用法。'
   },
   [NODE_TYPES.PARAMETERS]: {
-    name: 'Parameters',
+    name: '参数定义',
     defaultTitle: '参数定义',
     color: '#F44336',
     bgColor: '#F4433620',
     emoji: '⚙️',
-    defaultContent: '## 参数说明\n\n| 参数 | 类型 | 必填 | 说明 |\n|------|------|------|------|\n| `param1` | string | 是 | 参数一说明 |\n| `param2` | number | 否 | 参数二说明 |'
+    defaultContent: '## 参数定义\n\n| 参数名 | 类型 | 必填 | 说明 |\n|--------|------|------|------|\n| `param1` | string | 是 | 参数说明在这里\n| `param2` | number | 否 | 参数说明在这里'
   },
   [NODE_TYPES.EXAMPLES]: {
-    name: 'Examples',
+    name: '使用示例',
     defaultTitle: '使用示例',
     color: '#00BCD4',
     bgColor: '#00BCD420',
     emoji: '💻',
-    defaultContent: '## 使用示例\n\n### 示例一\n\n描述示例场景。\n\n```\n示例代码或命令\n```\n\n输出结果：\n```\n示例输出\n```'
+    defaultContent: '## 使用示例\n\n### 示例场景\n\n描述这个示例要展示什么场景。\n\n```\n# 输入命令\n/skill-name example-command\n```\n\n输出结果：\n```\n示例输出内容\n```'
   },
   [NODE_TYPES.NOTES]: {
-    name: 'Notes',
+    name: '备注说明',
     defaultTitle: '备注说明',
     color: '#607D8B',
     bgColor: '#607D8B20',
     emoji: '📝',
-    defaultContent: '## 备注\n\n在这里添加任何额外的说明、注意事项。\n\n- 注意事项一\n- 注意事项二'
+    defaultContent: '## 备注说明\n\n- 注意事项一\n- 注意事项二\n- 已知问题'
   }
 };
 
