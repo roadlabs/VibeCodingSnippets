@@ -1,4 +1,3 @@
-
 import React, { useRef } from 'react'
 import { NODE_TYPES, NODE_COLORS } from '../types'
 import { 
@@ -63,7 +62,7 @@ const nodeTypeInfo = {
   },
 }
 
-export default function Sidebar() {
+export default function Sidebar({ onNodeAdded } = {}) {
   const { selectedNodeId, addChildNode, deleteSelectedNode, nodes, edges, reset } = useSkillStore()
   const fileInputRef = useRef(null)
 
@@ -72,6 +71,10 @@ export default function Sidebar() {
       addChildNode(selectedNodeId, type)
     } else {
       addChildNode(null, type)
+    }
+    // Callback for mobile to close sidebar
+    if (onNodeAdded) {
+      onNodeAdded()
     }
   }
 
@@ -132,55 +135,61 @@ export default function Sidebar() {
   }
 
   return (
-    <div className="w-64 bg-gray-50 border-r h-full flex flex-col">
-      <div className="p-4 border-b bg-white">
-        <h1 className="font-bold text-lg text-gray-800">OpenClaw Skill Builder</h1>
-        <p className="text-xs text-gray-500 mt-1">Mindmap with Markdown nodes</p>
+    <div className="w-full md:w-64 bg-gray-50 border-r h-full flex flex-col overflow-y-auto">
+      <div className="p-3 md:p-4 border-b bg-white shrink-0">
+        <h1 className="font-bold text-base md:text-lg text-gray-800">OpenClaw Skill Builder</h1>
+        <p className="text-xs text-gray-500 mt-1 hidden md:block">可视化技能编辑器</p>
       </div>
 
-      <div className="p-4 border-b bg-white">
-        <h2 className="font-semibold text-sm text-gray-700 mb-3">Add Node</h2>
-        <div className="space-y-2">
+      <div className="p-3 md:p-4 border-b bg-white shrink-0">
+        <h2 className="font-semibold text-sm text-gray-700 mb-3">添加节点</h2>
+        <div className="grid grid-cols-2 md:grid-cols-1 gap-2">
           {Object.entries(nodeTypeInfo).map(([type, info]) => (
             <button
               key={type}
               onClick={() => handleAddNode(type)}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-100 transition-colors border border-gray-200 group"
+              className="w-full flex items-center gap-2 px-2 md:px-3 py-2 rounded hover:bg-gray-100 transition-colors border border-gray-200 group text-left"
             >
               <div 
-                className="p-1.5 rounded" 
+                className="p-1 rounded shrink-0" 
                 style={{ backgroundColor: NODE_COLORS[type] + '20', color: NODE_COLORS[type] }}
               >
                 {info.icon}
               </div>
-              <div className="text-left">
-                <div className="text-sm font-medium text-gray-700 group-hover:text-gray-900">
+              <div className="text-left min-w-0 flex-1">
+                <div className="text-xs md:text-sm font-medium text-gray-700 group-hover:text-gray-900 truncate">
                   {info.label}
                 </div>
-                <div className="text-xs text-gray-500">{info.description}</div>
               </div>
-              <Plus size={14} className="ml-auto opacity-50" />
+              <Plus size={12} className="opacity-50 shrink-0" />
             </button>
           ))}
         </div>
       </div>
 
-      <div className="p-4 border-b bg-white">
-        <h2 className="font-semibold text-sm text-gray-700 mb-3">Actions</h2>
+      <div className="p-3 md:p-4 border-b bg-white shrink-0">
+        <h2 className="font-semibold text-sm text-gray-700 mb-3">操作</h2>
         <div className="space-y-2">
           <button
             onClick={deleteSelectedNode}
             disabled={!selectedNodeId || selectedNodeId === 'root'}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded border border-red-200 hover:bg-red-50 text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full flex items-center gap-2 px-3 py-2 rounded border border-red-200 hover:bg-red-50 text-red-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
           >
             <Trash2 size={16} />
-            <span className="text-sm">Delete Selected</span>
+            <span>删除选中</span>
+          </button>
+          <button
+            onClick={reset}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded border border-gray-200 hover:bg-gray-50 text-gray-600 text-sm"
+          >
+            <RefreshCw size={16} />
+            <span>重置画布</span>
           </button>
         </div>
       </div>
 
-      <div className="p-4 border-b bg-white">
-        <h2 className="font-semibold text-sm text-gray-700 mb-3">Project</h2>
+      <div className="p-3 md:p-4 border-b bg-white shrink-0">
+        <h2 className="font-semibold text-sm text-gray-700 mb-3">项目</h2>
         <div className="space-y-2">
           <input
             ref={fileInputRef}
@@ -191,51 +200,32 @@ export default function Sidebar() {
           />
           <button
             onClick={() => fileInputRef.current.click()}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded border border-gray-200 hover:bg-gray-50 text-gray-600"
+            className="w-full flex items-center gap-2 px-3 py-2 rounded border border-gray-200 hover:bg-gray-50 text-gray-600 text-sm"
           >
             <FileText size={16} />
-            <span className="text-sm">Import Save</span>
+            <span>导入项目</span>
           </button>
           <button
             onClick={handleExportJson}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded border border-gray-200 hover:bg-gray-50 text-gray-600"
+            className="w-full flex items-center gap-2 px-3 py-2 rounded border border-gray-200 hover:bg-gray-50 text-gray-600 text-sm"
           >
             <Download size={16} />
-            <span className="text-sm">Export Save</span>
-          </button>
-          <button
-            onClick={reset}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded border border-gray-200 hover:bg-gray-50 text-gray-600"
-          >
-            <RefreshCw size={16} />
-            <span className="text-sm">Reset Canvas</span>
+            <span>导出项目</span>
           </button>
         </div>
       </div>
 
-      <div className="flex-1 p-4 text-xs text-gray-500">
-        <p className="mb-2"><strong className="text-gray-600">How it works:</strong></p>
-        <ul className="list-disc ml-3 space-y-1">
-          <li><strong>Every node is a title + Markdown editor</strong></li>
-          <li>Double-click any node to edit inline</li>
-          <li>Click node to view properties in right panel</li>
-          <li>Drag from handles to connect nodes</li>
-          <li>Drag nodes to rearrange the mindmap</li>
-          <li>All content is written to SKILL.md</li>
-        </ul>
-      </div>
-
       {/* Remote Deployment Configuration */}
-      <div className="p-4 border-t bg-blue-50">
-        <h2 className="font-semibold text-sm text-gray-700 mb-3">远程部署配置</h2>
-        <div className="space-y-2">
+      <div className="p-3 md:p-4 border-t bg-blue-50 shrink-0">
+        <h2 className="font-semibold text-sm text-gray-700 mb-3">远程部署</h2>
+        <div className="space-y-2 text-sm">
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">部署地址</label>
             <input 
               type="text" 
               defaultValue={localStorage.getItem('ocsb_deploy_url') || ''}
               onChange={(e) => localStorage.setItem('ocsb_deploy_url', e.target.value)}
-              placeholder="https://your-server/deploy"
+              placeholder="部署API地址"
               className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
             />
           </div>
@@ -245,7 +235,7 @@ export default function Sidebar() {
               type="text" 
               defaultValue={localStorage.getItem('ocsb_test_url') || ''}
               onChange={(e) => localStorage.setItem('ocsb_test_url', e.target.value)}
-              placeholder="https://your-server/test"
+              placeholder="测试API地址"
               className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
             />
           </div>
@@ -255,18 +245,15 @@ export default function Sidebar() {
               type="password" 
               defaultValue={localStorage.getItem('ocsb_access_token') || ''}
               onChange={(e) => localStorage.setItem('ocsb_access_token', e.target.value)}
-              placeholder="your-access-token"
+              placeholder="Token"
               className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
             />
           </div>
-          <p className="text-xs text-gray-500">
-            配置自动保存到浏览器本地
-          </p>
         </div>
       </div>
 
-      <div className="p-4 border-t bg-green-50">
-        <div className="space-y-2">
+      <div className="p-3 md:p-4 border-t bg-green-50 shrink-0">
+        <div className="grid grid-cols-1 gap-2">
           <button
             onClick={async () => {
               try {
@@ -292,37 +279,34 @@ export default function Sidebar() {
                 });
                 const result = await response.json();
                 if (response.ok) {
-                  alert(`部署成功！\n\n技能: ${skillName}\n地址: ${deployUrl}`);
+                  alert(`部署成功！\n\n技能: ${skillName}`);
                 } else {
                   alert(`部署失败: ${result.message || response.statusText}`);
                 }
               } catch (error) {
                 alert('部署错误: ' + error.message);
-                console.error('Deploy error:', error);
               }
             }}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold"
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-sm"
           >
             <span>🚀</span>
-            远程部署
+            <span>远程部署</span>
           </button>
           <button
             onClick={async () => {
               try {
                 const testUrl = localStorage.getItem('ocsb_test_url');
-                const token = localStorage.getItem('ocsb_access_token');
                 const { nodes, edges } = useSkillStore.getState();
                 const { skillName, files } = generateSkillFiles.all(nodes, edges);
                 if (!testUrl) {
-                  // No test url, just local test
-                  let output = `Generated Skill: ${skillName}\n\n`;
-                  const { files } = generateSkillFiles.all(nodes, edges);
+                  let output = `技能: ${skillName}\n\n`;
                   Object.entries(files).forEach(([filename, content]) => {
                     output += `=== ${filename} ===\n${content}\n\n`;
                   });
                   alert(output);
                   return;
                 }
+                const token = localStorage.getItem('ocsb_access_token');
                 if (!token) {
                   alert('请先填写访问 Token');
                   return;
@@ -337,19 +321,13 @@ export default function Sidebar() {
                 });
                 const result = await response.json();
                 if (response.ok) {
-                  let output = `测试成功！\n\n技能: ${skillName}\n`;
-                  if (result.output) {
-                    output += '\n' + result.output;
-                  }
-                  alert(output);
+                  alert(`测试成功！\n\n技能: ${skillName}`);
                 } else {
                   alert(`测试失败: ${result.message || response.statusText}`);
                 }
               } catch (error) {
-                console.error('Test error:', error);
-                // Fallback to local test
                 const { nodes, edges } = useSkillStore.getState();
-                let output = `Generated Skill: ${skillName}\n\n`;
+                let output = `技能测试\n\n`;
                 const { files } = generateSkillFiles.all(nodes, edges);
                 Object.entries(files).forEach(([filename, content]) => {
                   output += `=== ${filename} ===\n${content}\n\n`;
@@ -357,27 +335,24 @@ export default function Sidebar() {
                 alert(output);
               }
             }}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
           >
             <span>🧪</span>
-            测试生成
+            <span>测试生成</span>
           </button>
           <button
             onClick={handleDownloadZip}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold"
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium text-sm"
           >
-            <Download size={20} />
-            下载 ZIP
+            <Download size={16} />
+            <span>下载 ZIP</span>
           </button>
         </div>
-        <p className="text-xs text-green-700 mt-2 text-center">
-          自动生成 ZIP 包，包含 SKILL.md、index.js、package.json 和 README.md
-        </p>
       </div>
 
-      <div className="p-3 border-t bg-white">
-        <p className="text-xs text-gray-400 text-center">
-          Built with React + ReactFlow • OpenClaw
+      <div className="p-3 border-t bg-white mt-auto shrink-0">
+        <p className="text-xs text-gray-400 text-center hidden md:block">
+          Built with React + ReactFlow
         </p>
       </div>
     </div>
