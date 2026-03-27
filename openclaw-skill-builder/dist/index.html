@@ -8,10 +8,10 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://unpkg.com/reactflow@11.10.4/dist/umd/react-flow.js"></script>
-    <script src="https://unpkg.com/zustand@4.5.0/dist/ustand.development.js"></script>
+    <script src="https://unpkg.com/zustand@4.5.0/dist/zustand.umd.js"></script>
     <script src="https://unpkg.com/clsx@2.1.0/dist/clsx.umd.js"></script>
     <script src="https://unpkg.com/tailwind-merge@2.2.1/dist/tailwind-merge.js"></script>
-    <script src="https://unpkg.com/jszip@3.10.1/dist/JsZip.js"></script>
+    <script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/reactflow@11.10.4/dist/style.css" />
     <script src="https://cdn.tailwindcss.com"></script>
   </head>
@@ -22,7 +22,7 @@
 const { createRoot } = ReactDOM;
 const clsx = window.clsx;
 const twMerge = window.tailwindMerge;
-const { create } = window.zustand;
+const { create } = zustand;
 const JSZip = window.JSZip;
 const { 
   ReactFlow, 
