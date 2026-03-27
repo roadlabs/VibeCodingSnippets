@@ -685,6 +685,112 @@ function App() {
     autoLayout
   } = useSkillStore();
 
+  // Deployment config
+  const [deployUrl, setDeployUrl] = React.useState(
+    localStorage.getItem('ocsb_deploy_url') || ''
+  );
+  const [testUrl, setTestUrl] = React.useState(
+    localStorage.getItem('ocsb_test_url') || ''
+  );
+  const [accessToken, setAccessToken] = React.useState(
+    localStorage.getItem('ocsb_access_token') || ''
+  );
+
+  // Save config to localStorage
+  const saveConfig = () => {
+    localStorage.setItem('ocsb_deploy_url', deployUrl);
+    localStorage.setItem('ocsb_test_url', testUrl);
+    localStorage.setItem('ocsb_access_token', accessToken);
+    alert('配置已保存到本地！');
+  };
+
+  const handleDeploy = async () => {
+    if (!deployUrl) {
+      alert('请先填写部署地址');
+      return;
+    }
+    if (!accessToken) {
+      alert('请先填写访问 Token');
+      return;
+    }
+    try {
+      const { skillName, files } = generateSkillFiles(nodes, edges);
+      const response = await fetch(deployUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({
+          skillName,
+          files
+        })
+      });
+      const result = await response.json();
+      if (response.ok) {
+        alert(`部署成功！\n\n技能: ${skillName}\n地址: ${deployUrl}`);
+      } else {
+        alert(`部署失败: ${result.message || response.statusText}`);
+      }
+    } catch (error) {
+      alert('部署错误: ' + error.message);
+      console.error('Deploy error:', error);
+    }
+  };
+
+  const handleTest = async () => {
+    if (!testUrl) {
+      // If no test url, just do local test
+      handleTestLocal();
+      return;
+    }
+    if (!accessToken) {
+      alert('请先填写访问 Token');
+      return;
+    }
+    try {
+      const { skillName, files } = generateSkillFiles(nodes, edges);
+      const response = await fetch(testUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({
+          skillName,
+          files
+        })
+      });
+      const result = await response.json();
+      if (response.ok) {
+        let output = `测试成功！\n\n技能: ${skillName}\n`;
+        if (result.output) {
+          output += '\n' + result.output;
+        }
+        alert(output);
+      } else {
+        alert(`测试失败: ${result.message || response.statusText}`);
+      }
+    } catch (error) {
+      // Fallback to local test if remote fails
+      console.error('Remote test error:', error);
+      handleTestLocal();
+    }
+  };
+
+  const handleTestLocal = () => {
+    try {
+      const { skillName, files } = generateSkillFiles(nodes, edges);
+      let output = ` Generated Skill: ${skillName}\n\n`;
+      Object.entries(files).forEach(([filename, content]) => {
+        output += `=== ${filename} ===\n${content}\n\n`;
+      });
+      alert(output);
+    } catch (error) {
+      alert('Test error: ' + error.message);
+    }
+  };
+
   const nodeTypes = React.useMemo(() => ({
     [NODE_TYPES.ROOT]: CustomNode,
     [NODE_TYPES.FEATURES]: CustomNode,
@@ -867,24 +973,86 @@ function App() {
       {/* Right Bottom - Deploy & Test Panel */}
       <div className="fixed bottom-4 right-4 z-20 w-72 bg-white rounded-xl shadow-xl border border-gray-200 p-4 space-y-3">
         <h3 className="font-bold text-gray-800 flex items-center gap-2">
-          <span>⬆️</span>
-          部署测试
+          <span>🚀</span>
+          部署配置
         </h3>
-        <p className="text-xs text-gray-500">
-          自动生成 ZIP 包，包含 SKILL.md、index.js、package.json 和 README.md
-        </p>
+
         <div className="space-y-2">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">部署地址</label>
+            <input 
+              type="text" 
+              value={deployUrl} 
+              onChange={(e) => setDeployUrl(e.target.value)}
+              placeholder="https://your-server/deploy"
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">测试地址</label>
+            <input 
+              type="text" 
+              value={testUrl} 
+              onChange={(e) => setTestUrl(e.target.value)}
+              placeholder="https://your-server/test"
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">访问 Token</label>
+            <input 
+              type="password" 
+              value={accessToken} 
+              onChange={(e) => setAccessToken(e.target.value)}
+              placeholder="your-access-token"
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
           <button
-            onClick={handleTest}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            onClick={saveConfig}
+            className="w-full flex items-center justify-center gap-2 px-4 py-1.5 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium text-sm"
           >
-            <span>🧪</span>
-            测试生成
+            <span>💾</span>
+            保存配置
           </button>
-          <button
-            onClick={handleExportZip}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold"
-          >
-            <span>☁️</span>
-            导出 ZIP
-          </button>
+        </div>
+
+        <div className="border-t border-gray-200 pt-2 space-y-2">
+          <p className="text-xs text-gray-500">
+            自动生成 ZIP 包，包含 SKILL.md、index.js、package.json 和 README.md
+          </p>
+          <div className="space-y-2">
+            <button
+              onClick={handleTest}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            >
+              <span>🧪</span>
+              测试生成
+            </button>
+            <button
+              onClick={handleDeploy}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold"
+            >
+              <span>🚀</span>
+              远程部署
+            </button>
+            <button
+              onClick={handleExportZip}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold"
+            >
+              <span>☁️</span>
+              下载 ZIP
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const root = createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</script>
+  </body>
+</html>
