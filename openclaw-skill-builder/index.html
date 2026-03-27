@@ -841,19 +841,6 @@ function App() {
     URL.revokeObjectURL(url);
   };
 
-  const handleTest = () => {
-    try {
-      const { skillName, files } = generateSkillFiles(nodes, edges);
-      let output = `Generated Skill: ${skillName}\n\n`;
-      Object.entries(files).forEach(([filename, content]) => {
-        output += `=== ${filename} ===\n${content}\n\n`;
-      });
-      alert(output);
-    } catch (error) {
-      alert('Test error: ' + error.message);
-    }
-  };
-
   const reactFlowStyle = {
     background: '#f8f8f8',
     width: '100%',
