@@ -339,8 +339,8 @@ const renderMarkdown = (text) => {
 };
 
 // --- Custom Node Component ---
-// In ReactFlow, the node dragging is handled by the ReactFlow container itself
-// We just need to make sure we don't block interaction when not editing
+// In ReactFlow: when not editing, use pointer-events: none to let drag events go through to ReactFlow
+// Only capture pointer events when editing
 function CustomNode({ data, selected, type, id }) {
   const def = NODE_DEFINITIONS[type];
   const color = def.color;
@@ -361,17 +361,10 @@ function CustomNode({ data, selected, type, id }) {
   };
 
   const handleDoubleClick = (e) => {
-    // Double-click to start editing
+    // Double-click to start editing - we need to capture this
     e.stopPropagation();
     e.preventDefault();
     setIsEditing(true);
-  };
-
-  const stopPropagation = (e) => {
-    // When editing, stop propagation so ReactFlow doesn't interfere
-    if (isEditing) {
-      e.stopPropagation();
-    }
   };
 
   const emojiIcon = def.emoji;
@@ -387,8 +380,6 @@ function CustomNode({ data, selected, type, id }) {
         borderTopWidth: 4,
         minWidth: '260px',
         minHeight: '140px',
-        // When not editing, allow ReactFlow to handle dragging
-        pointerEvents: isEditing ? 'auto' : 'auto',
       }}
     >
       <Handle 
@@ -398,8 +389,12 @@ function CustomNode({ data, selected, type, id }) {
         style={{ left: -6 }}
       />
       
-      {/* Only stop propagation when editing. When not editing, allow ReactFlow drag */}
-      <div onDoubleClick={handleDoubleClick} onMouseDown={stopPropagation} onMouseMove={stopPropagation}>
+      {/* When NOT editing: pointer-events: none allows ReactFlow to handle dragging through this div */}
+      {/* When editing: pointer-events: auto so you can type */}
+      <div 
+        onDoubleClick={handleDoubleClick}
+        style={{ pointerEvents: isEditing ? 'auto' : 'none' }}
+      >
         {isEditing ? (
           <div className="p-3 space-y-2">
             <input 
