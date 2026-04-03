@@ -15,5 +15,4 @@
 - [Yuezi PWA](website_apps/yuezi-pwa.html)
 - [月子餐食材清单分析](website_apps/月子餐食材清单分析.html)
 - [Harness Engineering](harness-engineering.html)
-- [Harness Engineering](harness-engineering.html)
 - [OpenClaw Skill Builder](openclaw-skill-builder/dist/index.html)
