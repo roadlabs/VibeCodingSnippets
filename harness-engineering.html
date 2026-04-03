@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Harness Engineering - 驾驭AI的艺术</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #12121a;
+      --surface2: #1a1a2e;
+      --border: #2a2a4a;
+      --accent: #7c3aed;
+      --accent2: #a78bfa;
+      --accent-glow: rgba(124, 58, 237, 0.3);
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --green: #10b981;
+      --yellow: #f59e0b;
+      --red: #ef4444;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Hero */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 2rem;
+      position: relative;
+      background: radial-gradient(ellipse at 50% 0%, rgba(124,58,237,0.15) 0%, transparent 70%);
+    }
+
+    .hero h1 {
+      font-size: clamp(2.5rem, 8vw, 5rem);
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent2), #f0abfc, var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.1;
+      margin-bottom: 1rem;
+    }
+
+    .hero .subtitle {
+      font-size: 1.25rem;
+      color: var(--text-muted);
+      max-width: 600px;
+      line-height: 1.6;
+      margin-bottom: 2.5rem;
+    }
+
+    .hero .badge {
+      display: inline-block;
+      background: var(--accent);
+      color: white;
+      padding: 0.4rem 1rem;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+    }
+
+    .scroll-hint {
+      position: absolute;
+      bottom: 2rem;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      animation: bounce 2s infinite;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(8px); }
+    }
+
+    /* Nav */
+    .nav {
+      position: sticky;
+      top: 0;
+      background: rgba(10,10,15,0.85);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      z-index: 100;
+      padding: 0.75rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      overflow-x: auto;
+    }
+
+    .nav-item {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      padding: 0.4rem 0.8rem;
+      border-radius: 8px;
+      transition: all 0.2s;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .nav-item:hover, .nav-item.active {
+      color: var(--accent2);
+      background: rgba(124,58,237,0.1);
+    }
+
+    /* Sections */
+    .section {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 4rem 1.5rem;
+    }
+
+    .section h2 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .section .lead {
+      color: var(--text-muted);
+      font-size: 1.1rem;
+      line-height: 1.7;
+      margin-bottom: 2rem;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+      transition: all 0.3s;
+    }
+
+    .card:hover {
+      border-color: var(--accent);
+      box-shadow: 0 0 30px var(--accent-glow);
+    }
+
+    .card h3 {
+      font-size: 1.1rem;
+      margin-bottom: 0.5rem;
+      color: var(--accent2);
+    }
+
+    .card p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    /* Concept Grid */
+    .concept-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+
+    /* Prompt Lab */
+    .prompt-lab {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      overflow: hidden;
+    }
+
+    .prompt-header {
+      background: var(--surface2);
+      padding: 1rem 1.5rem;
+      display: flex;
+      gap: 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .prompt-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    .prompt-dot.r { background: #ef4444; }
+    .prompt-dot.y { background: #f59e0b; }
+    .prompt-dot.g { background: #10b981; }
+
+    .prompt-body {
+      padding: 1.5rem;
+    }
+
+    .prompt-body label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+    }
+
+    .prompt-input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem;
+      color: var(--text);
+      font-size: 0.95rem;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      resize: vertical;
+      min-height: 80px;
+      transition: border-color 0.2s;
+      outline: none;
+    }
+
+    .prompt-input:focus {
+      border-color: var(--accent);
+    }
+
+    .prompt-controls {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .harness-tags {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-top: 1rem;
+    }
+
+    .harness-tag {
+      padding: 0.3rem 0.8rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text-muted);
+      transition: all 0.2s;
+    }
+
+    .harness-tag:hover {
+      border-color: var(--accent);
+      color: var(--accent2);
+    }
+
+    .harness-tag.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+
+    .btn {
+      padding: 0.6rem 1.5rem;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #6d28d9;
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--accent);
+    }
+
+    /* Output */
+    .output-area {
+      margin-top: 1.5rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem;
+      min-height: 100px;
+      font-size: 0.95rem;
+      line-height: 1.7;
+    }
+
+    .output-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--green);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+    }
+
+    .output-placeholder {
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    /* Comparison */
+    .comparison {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+
+    @media (max-width: 600px) {
+      .comparison { grid-template-columns: 1fr; }
+    }
+
+    .comparison-col {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .comparison-col.bad {
+      border-color: var(--red);
+    }
+
+    .comparison-col.good {
+      border-color: var(--green);
+    }
+
+    .comparison-label {
+      padding: 0.6rem 1rem;
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .comparison-col.bad .comparison-label { background: rgba(239,68,68,0.15); color: var(--red); }
+    .comparison-col.good .comparison-label { background: rgba(16,185,129,0.15); color: var(--green); }
+
+    .comparison-code {
+      padding: 1rem;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-size: 0.85rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      color: var(--text-muted);
+    }
+
+    /* Quiz */
+    .quiz-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .quiz-q {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    .quiz-options {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .quiz-option {
+      padding: 0.8rem 1rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: all 0.2s;
+      text-align: left;
+    }
+
+    .quiz-option:hover:not(.correct):not(.wrong) {
+      border-color: var(--accent);
+    }
+
+    .quiz-option.correct {
+      border-color: var(--green);
+      background: rgba(16,185,129,0.1);
+      color: var(--green);
+    }
+
+    .quiz-option.wrong {
+      border-color: var(--red);
+      background: rgba(239,68,68,0.1);
+      color: var(--red);
+    }
+
+    .quiz-feedback {
+      margin-top: 1rem;
+      padding: 0.8rem 1rem;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      display: none;
+    }
+
+    .quiz-feedback.show { display: block; }
+    .quiz-feedback.correct { background: rgba(16,185,129,0.1); border: 1px solid var(--green); }
+    .quiz-feedback.wrong { background: rgba(239,68,68,0.1); border: 1px solid var(--red); }
+
+    .quiz-score {
+      text-align: center;
+      padding: 1.5rem;
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--accent2);
+    }
+
+    /* Progress */
+    .progress-bar {
+      height: 4px;
+      background: var(--surface2);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius: 2px;
+      transition: width 0.5s ease;
+    }
+
+    /* Architecture Diagram */
+    .arch-diagram {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+      margin-top: 1.5rem;
+    }
+
+    .arch-flow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .arch-node {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0.8rem 1.2rem;
+      font-size: 0.9rem;
+      font-weight: 500;
+      text-align: center;
+      min-width: 120px;
+      transition: all 0.3s;
+    }
+
+    .arch-node:hover {
+      border-color: var(--accent);
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+
+    .arch-node.highlight {
+      border-color: var(--accent);
+      background: rgba(124,58,237,0.1);
+    }
+
+    .arch-arrow {
+      color: var(--text-muted);
+      font-size: 1.2rem;
+    }
+
+    @media (max-width: 600px) {
+      .arch-flow { flex-direction: column; }
+      .arch-arrow { transform: rotate(90deg); }
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 3rem 1.5rem;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      border-top: 1px solid var(--border);
+    }
+
+    /* Animations */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.6s ease;
+    }
+
+    .fade-in.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Highlight */
+    .highlight-text {
+      color: var(--accent2);
+      font-weight: 600;
+    }
+
+    /* Divider */
+    .section-divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 0;
+    }
+
+    .tab-group {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.5rem;
+    }
+
+    .tab-btn {
+      padding: 0.5rem 1rem;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      border-radius: 8px 8px 0 0;
+      transition: all 0.2s;
+    }
+
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active {
+      color: var(--accent2);
+      background: rgba(124,58,237,0.1);
+    }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    select.prompt-input {
+      font-family: inherit;
+      min-height: 50px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Hero -->
+<section class="hero" id="top">
+  <span class="badge">🔥 AI 圈新概念</span>
+  <h1>Harness Engineering</h1>
+  <p class="subtitle">驯服大模型的工程化方法论——让 AI 在保持强大能力的同时，始终在可控范围内工作</p>
+  <div class="scroll-hint">
+    <span>向下探索</span>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+  </div>
+</section>
+
+<!-- Nav -->
+<nav class="nav">
+  <a class="nav-item active" onclick="scrollTo('what')">核心概念</a>
+  <a class="nav-item" onclick="scrollTo('why')">为什么需要</a>
+  <a class="nav-item" onclick="scrollTo('arch')">架构图</a>
+  <a class="nav-item" onclick="scrollTo('lab')">交互实验室</a>
+  <a class="nav-item" onclick="scrollTo('compare')">效果对比</a>
+  <a class="nav-item" onclick="scrollTo('quiz')">知识测验</a>
+</nav>
+
+<!-- What -->
+<section class="section" id="what">
+  <h2>什么是 Harness Engineering？</h2>
+  <p class="lead">Harness Engineering（驾驭工程）是一种系统性的方法论，用于引导、规范和控制 AI 系统的行为，使其既保持强大能力，又始终在人类可控的范围内运行。</p>
+
+  <div class="concept-grid">
+    <div class="card fade-in">
+      <h3>🎯 核心目标</h3>
+      <p>在 AI 的<strong>能力</strong>和<strong>可控性</strong>之间找到最佳平衡点。AI 越强大，越需要精密的"驾驭"机制。</p>
+    </div>
+    <div class="card fade-in">
+      <h3>🔧 四大支柱</h3>
+      <p><strong>Prompt Engineering</strong>（提示词工程）、<strong>Guardrails</strong>（安全护栏）、<strong>Output Validation</strong>（输出校验）、<strong>Agent Orchestration</strong>（Agent编排）</p>
+    </div>
+    <div class="card fade-in">
+      <h3>⚡ 核心思想</h3>
+      <p>把 AI 看作一匹野马——它有巨大的力量，但需要缰绳和鞍具才能被人驾驭。Harness 就是那套缰绳。</p>
+    </div>
+    <div class="card fade-in">
+      <h3>🛠 工程实践</h3>
+      <p>不是一次性的调参，而是一套完整的<strong>系统化工程流程</strong>：设计→测试→监控→迭代→部署</p>
+    </div>
+  </div>
+</section>
+
+<hr class="section-divider">
+
+<!-- Why -->
+<section class="section" id="why">
+  <h2>为什么 AI 需要被"驾驭"？</h2>
+  <p class="lead">大模型的涌现能力令人惊叹，但它们同样可能：产生幻觉、偏离目标、泄露隐私、被恶意诱导……</p>
+
+  <div class="comparison">
+    <div>
+      <div class="card" style="border-color: var(--red);">
+        <h3 style="color: var(--red);">❌ 没有 Harness</h3>
+        <p>• 输出不可预测，质量波动大<br>• 容易被 prompt injection 攻击<br>• 无法约束内容边界<br>• 缺乏系统性调试手段<br>• 生产环境行为难以复现</p>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="border-color: var(--green);">
+        <h3 style="color: var(--green);">✅ 有 Harness</h3>
+        <p>• 输出稳定可控<br>• 多层安全护栏抵御攻击<br>• 清晰的内容边界管理<br>• 系统化的调优流程<br>• 可观测、可复现、可回滚</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="section-divider">
+
+<!-- Architecture -->
+<section class="section" id="arch">
+  <h2>Harness 系统架构</h2>
+  <p class="lead">一个完整的 Harness 系统通常包含以下几个层次：</p>
+
+  <div class="arch-diagram">
+    <div class="arch-flow">
+      <div class="arch-node highlight">用户输入</div>
+      <span class="arch-arrow">→</span>
+      <div class="arch-node">输入校验 &amp; 清洗</div>
+      <span class="arch-arrow">→</span>
+      <div class="arch-node highlight">Prompt 组装</div>
+      <span class="arch-arrow">→</span>
+      <div class="arch-node">LLM 推理</div>
+      <span class="arch-arrow">→</span>
+      <div class="arch-node highlight">输出校验</div>
+      <span class="arch-arrow">→</span>
+      <div class="arch-node">Guardrails</div>
+      <span class="arch-arrow">→</span>
+      <div class="arch-node highlight">安全输出</div>
+    </div>
+  </div>
+
+  <div class="concept-grid" style="margin-top: 1.5rem;">
+    <div class="card fade-in">
+      <h3>🔍 输入层</h3>
+      <p>对用户输入进行校验、清洗和分类。识别恶意输入（如注入攻击）、过滤敏感内容、进行意图分类。</p>
+    </div>
+    <div class="card fade-in">
+      <h3>📝 Prompt 层</h3>
+      <p>动态组装最优 prompt，包含系统指令、few-shot 示例、上下文约束。模板化管理，分场景调优。</p>
+    </div>
+    <div class="card fade-in">
+      <h3>🧠 推理层</h3>
+      <p>LLM 推理本身。重点是模型选择、温度控制、采样参数调优，以及推理过程的日志记录。</p>
+    </div>
+    <div class="card fade-in">
+      <h3>🛡 输出层</h3>
+      <p>对 LLM 输出进行结构化校验：格式验证、事实核查、内容安全扫描。Guardrails 确保最终输出符合预期。</p>
+    </div>
+  </div>
+</section>
+
+<hr class="section-divider">
+
+<!-- Interactive Lab -->
+<section class="section" id="lab">
+  <h2>🧪 Prompt Harness 实验室</h2>
+  <p class="lead">选择一个任务场景，给原始 prompt 打上不同的"Harness 标签"，观察输出质量的变化。</p>
+
+  <div class="prompt-lab">
+    <div class="prompt-header">
+      <div class="prompt-dot r"></div>
+      <div class="prompt-dot y"></div>
+      <div class="prompt-dot g"></div>
+      <span style="margin-left: 1rem; color: var(--text-muted); font-size: 0.85rem;">prompt-harness-lab</span>
+    </div>
+    <div class="prompt-body">
+
+      <div class="tab-group">
+        <button class="tab-btn active" onclick="switchTab(this, 'tab1')">📋 任务场景</button>
+        <button class="tab-btn" onclick="switchTab(this, 'tab2')">🎨 Harness 标签</button>
+      </div>
+
+      <div id="tab1" class="tab-content active">
+        <label>选择任务类型</label>
+        <select class="prompt-input" id="taskSelect" onchange="updateTask()">
+          <option value="code">代码生成：写一个快排函数</option>
+          <option value="summary">文章摘要：总结一段文字</option>
+          <option value="reply">客服回复：回复用户投诉</option>
+          <option value="translate">翻译任务：中译英</option>
+        </select>
+
+        <label style="margin-top: 1rem;">你的 Prompt</label>
+        <textarea class="prompt-input" id="promptInput" placeholder="在此输入你的 prompt..."></textarea>
+      </div>
+
+      <div id="tab2" class="tab-content">
+        <label>选择要应用的 Harness 标签（可多选）</label>
+        <div class="harness-tags" id="harnessTags">
+          <span class="harness-tag" data-tag="format" onclick="toggleTag(this)">📐 输出格式约束</span>
+          <span class="harness-tag" data-tag="safety" onclick="toggleTag(this)">🛡 安全护栏</span>
+          <span class="harness-tag" data-tag="style" onclick="toggleTag(this)">✍️ 风格指南</span>
+          <span class="harness-tag" data-tag="example" onclick="toggleTag(this)">📖 Few-shot 示例</span>
+          <span class="harness-tag" data-tag="role" onclick="toggleTag(this)">🎭 角色设定</span>
+          <span class="harness-tag" data-tag="limit" onclick="toggleTag(this)">📏 长度限制</span>
+          <span class="harness-tag" data-tag="step" onclick="toggleTag(this)">🔢 分步指令</span>
+          <span class="harness-tag" data-tag="output" onclick="toggleTag(this)">🔍 输出校验</span>
+        </div>
+      </div>
+
+      <div class="prompt-controls">
+        <button class="btn btn-primary" onclick="simulateOutput()">⚡ 模拟输出</button>
+        <button class="btn btn-secondary" onclick="resetLab()">🔄 重置</button>
+      </div>
+
+      <div class="output-area" id="outputArea">
+        <div class="output-label">Output</div>
+        <div class="output-placeholder">点击"模拟输出"查看效果...</div>
+      </div>
+
+      <div style="margin-top: 1rem; padding: 1rem; background: var(--surface2); border-radius: 10px; font-size: 0.85rem; color: var(--text-muted);">
+        <strong style="color: var(--accent2);">💡 提示：</strong>由于是纯前端演示，"模拟输出"会基于规则生成代表性结果，而非真实调用 LLM。实际项目中，这里会连接真实的 AI API。
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="section-divider">
+
+<!-- Compare -->
+<section class="section" id="compare">
+  <h2>⚔️ 有 Harness vs 无 Harness</h2>
+  <p class="lead">同一个问题，不同的驾驭方式，效果天差地别。</p>
+
+  <div class="tab-group">
+    <button class="tab-btn active" onclick="switchTab(this, 'q1')">场景一：代码生成</button>
+    <button class="tab-btn" onclick="switchTab(this, 'q2')">场景二：客服回复</button>
+    <button class="tab-btn" onclick="switchTab(this, 'q3')">场景三：摘要任务</button>
+  </div>
+
+  <div id="q1" class="tab-content active">
+    <div class="comparison">
+      <div class="comparison-col bad">
+        <div class="comparison-label">❌ 无 Harness</div>
+        <div class="comparison-code">Prompt: "写一个排序函数"
+
+输出：
+def sort_things(items):
+    # 用最快的方式排序
+    return sorted(items)
+    # 不知道用什么算法
+    # 没有边界处理
+    # 性能不明</div>
+      </div>
+      <div class="comparison-col good">
+        <div class="comparison-label">✅ 有 Harness</div>
+        <div class="comparison-code">Prompt: "用 Python 实现快排，满足：
+1. 时间复杂度 O(n log n)
+2. 处理边界情况（空数组、单元素）
+3. 返回排序后的新列表
+4. 添加类型注解和文档字符串"
+
+输出：
+from typing import List
+def quick_sort(arr: List[int]) -> List[int]:
+    """快速排序实现"""
+    if len(arr) <= 1:
+        return arr
+    pivot = arr[len(arr) // 2]
+    left = [x for x in arr if x < pivot]
+    middle = [x for x in arr if x == pivot]
+    right = [x for x in arr if x > pivot]
+    return quick_sort(left) + middle + quick_sort(right)</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="q2" class="tab-content">
+    <div class="comparison">
+      <div class="comparison-col bad">
+        <div class="comparison-label">❌ 无 Harness</div>
+        <div class="comparison-code">Prompt: "回复这个投诉：'你们产品太差了！'"
+
+输出：
+"亲爱的用户，我们非常抱歉听到您的负面体验。
+我们的产品是最好的，我们有最好的团队..."
+
+问题：道歉过度、缺乏同理心、承诺无法兑现</div>
+      </div>
+      <div class="comparison-col good">
+        <div class="comparison-label">✅ 有 Harness</div>
+        <div class="comparison-code">Prompt: "作为客服助理，回复用户投诉。规则：
+1. 先表达同理心："我能理解您的失望"
+2. 不承认产品"差"，用"未达预期"替代
+3. 提供具体解决方案（如退款/换货）
+4. 语气专业，不卑不亢
+5. 不超过3句话"
+
+输出：
+"我能理解您的失望。针对此问题，我们提供换货或全额退款选项，您希望哪种方案？"</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="q3" class="tab-content">
+    <div class="comparison">
+      <div class="comparison-col bad">
+        <div class="comparison-label">❌ 无 Harness</div>
+        <div class="comparison-code">Prompt: "总结一下这篇文章"
+
+输出：
+"这篇文章讨论了很多重要的主题，
+包括技术、发展、未来和挑战。
+作者提出了深刻的见解..."
+
+问题：空洞无物，看不出具体内容</div>
+      </div>
+      <div class="comparison-col good">
+        <div class="comparison-label">✅ 有 Harness</div>
+        <div class="comparison-code">Prompt: "用3句话总结，要求：
+1. 第一句：核心论点（<20字）
+2. 第二句：主要论据（<30字）
+3. 第三句：结论/启示（<20字）
+4. 禁止使用"重要""优秀"等空洞词"
+
+输出：
+"LLM 存在幻觉问题。解决方案是在 RAG 架构中引入实时检索机制来纠正生成内容。部署时需配置输出校验层过滤敏感信息。"</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="section-divider">
+
+<!-- Quiz -->
+<section class="section" id="quiz">
+  <div class="progress-bar">
+    <div class="progress-fill" id="quizProgress" style="width: 0%"></div>
+  </div>
+
+  <h2>📝 知识小测验</h2>
+  <p class="lead">检验你对 Harness Engineering 的理解。</p>
+
+  <div id="quizContainer"></div>
+
+  <div class="quiz-score" id="quizScore" style="display:none;"></div>
+
+  <div style="text-align: center; margin-top: 1.5rem;">
+    <button class="btn btn-primary" id="nextQuestion" onclick="nextQuestion()" style="display:none;">下一题 →</button>
+    <button class="btn btn-secondary" id="retryQuiz" onclick="startQuiz()" style="display:none;">🔄 重新测试</button>
+  </div>
+</section>
+
+<hr class="section-divider">
+
+<!-- Summary -->
+<section class="section" id="summary">
+  <h2>📌 核心要点速览</h2>
+
+  <div class="card fade-in" style="border-left: 4px solid var(--accent);">
+    <h3>一句话理解 Harness Engineering</h3>
+    <p>用工程化的方法，在充分发挥 AI 能力的同时，确保其行为始终符合人类预期——就像给野马套上缰绳，让它既跑得快，又不失控。</p>
+  </div>
+
+  <div class="concept-grid" style="margin-top: 1.5rem;">
+    <div class="card fade-in">
+      <h3>🎯 核心原则</h3>
+      <p>能力 × <span class="highlight-text">可控性</span> = Harness</p>
+    </div>
+    <div class="card fade-in">
+      <h3>🛠 四大实践</h3>
+      <p>Prompt · Guardrails · Validation · Orchestration</p>
+    </div>
+    <div class="card fade-in">
+      <h3>📈 成熟度阶梯</h3>
+      <p>手工调优 → 模板化 → 规则引擎 → <span class="highlight-text">自适应系统</span></p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>Harness Engineering 交互学习应用 · 基于「code秘密花园」文章概念构建</p>
+</footer>
+
+<script>
+  // Scroll animations
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+  // Nav active state
+  const sections = ['what', 'why', 'arch', 'lab', 'compare', 'quiz', 'summary'];
+  window.addEventListener('scroll', () => {
+    const navItems = document.querySelectorAll('.nav-item');
+    let current = '';
+    sections.forEach(id => {
+      const el = document.getElementById(id);
+      if (el && el.getBoundingClientRect().top < 200) current = id;
+    });
+    navItems.forEach(item => {
+      item.classList.toggle('active', item.getAttribute('onclick')?.includes(current));
+    });
+  });
+
+  function scrollTo(id) {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  // Tabs
+  function switchTab(btn, id) {
+    btn.parentElement.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    btn.closest('.section, .prompt-lab').querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.getElementById(id)?.classList.add('active');
+  }
+
+  // Harness tags
+  function toggleTag(el) {
+    el.classList.toggle('active');
+  }
+
+  function getActiveTags() {
+    return [...document.querySelectorAll('.harness-tag.active')].map(t => t.dataset.tag);
+  }
+
+  // Tasks
+  const TASKS = {
+    code: {
+      base: '写一个排序函数',
+      harness: {
+        format: '输出格式：用 TypeScript，包含类型注解',
+        safety: '禁止生成任何包含用户数据的代码',
+        style: '代码风格：遵循 Airbnb style guide',
+        example: '示例输出格式：\nfunction sort(arr: number[]): number[] {\n  // 排序逻辑\n}',
+        role: '你是一位资深算法工程师',
+        limit: '代码不超过20行',
+        step: '步骤：1.选择算法 2.实现 3.测试用例',
+        output: '输出必须包含：算法名称、时间复杂度、完整代码'
+      }
+    },
+    summary: {
+      base: '总结这段文字的核心观点',
+      harness: {
+        format: '输出格式：JSON {"summary":"...","keywords":[...]}',
+        safety: '不输出原文内容，只输出摘要',
+        style: '风格：简洁、客观、不带感情色彩',
+        example: '示例：{"summary":"LLM存在幻觉问题","keywords":["幻觉","RAG","校验"]}',
+        role: '你是一位专业的内容分析师',
+        limit: '摘要不超过50字，关键词不超过5个',
+        step: '流程：1.识别主题 2.提取关键论点 3.生成摘要',
+        output: '必须输出有效JSON，否则重试'
+      }
+    },
+    reply: {
+      base: '回复客户：你们的APP闪退了，很生气',
+      harness: {
+        format: '回复格式：称呼 + 道歉 + 解决方案 + 联系方式',
+        safety: '不承认技术故障细节，不承诺具体修复时间',
+        style: '语气：专业、同理心、简洁',
+        example: '张先生您好，非常抱歉给您带来困扰。我们已提交问题工单，将在24小时内与您联系确认详情。',
+        role: '你是一位专业客服代表',
+        limit: '不超过3句话',
+        step: '流程：1.表达歉意 2.承认问题 3.提供解决方案',
+        output: '回复不能包含"非常抱歉"超过1次'
+      }
+    },
+    translate: {
+      base: '把这句话翻译成英文：你真棒',
+      harness: {
+        format: '输出只包含英文翻译，不添加解释',
+        safety: '只做翻译，不做内容评判或延伸',
+        style: '风格：自然、地道的英文表达',
+        example: '输入：你真棒\n输出：You are amazing!',
+        role: '你是一位专业中英翻译',
+        limit: '翻译结果不超过原文长度的150%',
+        step: '1.理解语义 2.选择最自然表达 3.输出',
+        output: '结果必须以 "Translation:" 开头'
+      }
+    }
+  };
+
+  function updateTask() {
+    const task = TASKS[document.getElementById('taskSelect').value];
+    document.getElementById('promptInput').value = task.base;
+  }
+
+  updateTask();
+
+  function simulateOutput() {
+    const taskId = document.getElementById('taskSelect').value;
+    const activeTags = getActiveTags();
+    const task = TASKS[taskId];
+
+    let enhancedPrompt = task.base;
+    let improvements = [];
+
+    activeTags.forEach(tag => {
+      if (task.harness[tag]) {
+        enhancedPrompt += '\n\n[' + task.harness[tag].split('\n')[0] + ']';
+        improvements.push('✅ ' + tag + ': ' + task.harness[tag]);
+      }
+    });
+
+    const outputEl = document.getElementById('outputArea');
+    let html = '<div class="output-label">Output</div>';
+
+    if (improvements.length === 0) {
+      html += '<div style="color: var(--text-muted); font-style: italic;">没有应用任何 Harness 标签，输出可能是通用的、低质量的。</div>';
+      html += '<div style="margin-top: 1rem; padding: 0.8rem; background: var(--surface2); border-radius: 8px; font-size: 0.85rem;"><div style="color: var(--yellow); margin-bottom: 0.5rem;">⚠️ 质量评级：⭐⭐</div><div style="color: var(--text-muted); font-size: 0.8rem;">• 无格式约束<br>• 无风格控制<br>• 无安全护栏<br>• 无质量保证</div></div>';
+    } else {
+      const stars = Math.min(5, 2 + improvements.length);
+      const starStr = '⭐'.repeat(stars);
+      html += '<div style="margin-bottom: 1rem;"><div style="color: var(--green); font-weight: 600;">Harness 增强后的 Prompt：</div><div style="background: var(--surface2); padding: 0.8rem; border-radius: 8px; margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-muted); white-space: pre-wrap; font-family: monospace;">' + escapeHtml(enhancedPrompt) + '</div></div>';
+      html += '<div style="padding: 0.8rem; background: rgba(16,185,129,0.1); border-radius: 8px; font-size: 0.85rem;"><div style="color: var(--green); margin-bottom: 0.5rem;">质量评级：' + starStr + ' ' + (stars >= 4 ? '优秀' : stars >= 3 ? '良好' : '一般') + '</div><div style="color: var(--text-muted);">' + improvements.join('<br>') + '</div></div>';
+    }
+
+    outputEl.innerHTML = html;
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function resetLab() {
+    document.querySelectorAll('.harness-tag').forEach(t => t.classList.remove('active'));
+    updateTask();
+    document.getElementById('outputArea').innerHTML = '<div class="output-label">Output</div><div class="output-placeholder">点击"模拟输出"查看效果...</div>';
+  }
+
+  // Quiz
+  const QUIZZES = [
+    {
+      q: 'Harness Engineering 的核心目标是什么？',
+      options: ['让 AI 变得更快', '在保持 AI 能力的同时确保可控性', '减少 AI 的训练成本', '让 AI 取代人类工作'],
+      correct: 1,
+      explanation: 'Harness Engineering 的核心是在 AI 的强大能力和人类对它的可控性之间找到平衡。'
+    },
+    {
+      q: '以下哪项不属于 Harness Engineering 的四大支柱？',
+      options: ['Prompt Engineering', 'Guardrails（安全护栏）', 'Model Training', 'Output Validation'],
+      correct: 2,
+      explanation: '四大支柱是：Prompt Engineering、Guardrails、Output Validation、Agent Orchestration。Model Training 不属于 Harness 范畴。'
+    },
+    {
+      q: '为什么 AI 输出需要"校验（Validation）"层？',
+      options: ['让输出更漂亮', '防止 LLM 的幻觉和不符合预期的内容', '加快推理速度', '节省 Token 成本'],
+      correct: 1,
+      explanation: 'LLM 可能产生幻觉、偏离目标或生成有害内容，输出校验层作为最后一道防线，确保最终内容符合预期。'
+    },
+    {
+      q: 'Prompt Engineering 在 Harness 体系中属于哪一层？',
+      options: ['输入层', 'Prompt 层', '推理层', '输出层'],
+      correct: 1,
+      explanation: 'Prompt Engineering 属于 Prompt 层，负责动态组装最优 prompt，包括系统指令、few-shot 示例和上下文约束。'
+    },
+    {
+      q: '"Few-shot 示例"（Few-shot Learning）在 Harness 中的作用是什么？',
+      options: ['让 AI 记住更多知识', '通过提供示例引导 AI 按期望格式/风格输出', '加快 AI 响应速度', '减少 Token 消耗'],
+      correct: 1,
+      explanation: 'Few-shot 通过提供输入-输出示例，让 AI 理解任务的具体格式、风格和边界，比纯文字指令更有效。'
+    }
+  ];
+
+  let currentQ = 0;
+  let answered = [];
+
+  function startQuiz() {
+    currentQ = 0;
+    answered = [];
+    document.getElementById('quizScore').style.display = 'none';
+    document.getElementById('nextQuestion').style.display = 'none';
+    document.getElementById('retryQuiz').style.display = 'none';
+    document.getElementById('quizProgress').style.width = '0%';
+    renderQuestion();
+  }
+
+  function renderQuestion() {
+    const q = QUIZZES[currentQ];
+    const answeredQ = answered[currentQ];
+
+    let html = '';
+    q.options.forEach(function(opt, i) {
+      var cls = 'quiz-option';
+      if (answeredQ !== undefined) {
+        if (i === q.correct) cls += ' correct';
+        else if (i === answeredQ) cls += ' wrong';
+      }
+      html += '<div class="' + cls + '" onclick="' + (answeredQ === undefined ? 'selectAnswer(' + i + ')' : '') + '">' + String.fromCharCode(65 + i) + '. ' + opt + '</div>';
+    });
+
+    var feedback = '';
+    if (answeredQ !== undefined) {
+      var isCorrect = answeredQ === q.correct;
+      feedback = '<div class="quiz-feedback show ' + (isCorrect ? 'correct' : 'wrong') + '"><strong>' + (isCorrect ? '✅ 正确！' : '❌ 错误！') + '</strong> ' + q.explanation + '</div>';
+    }
+
+    document.getElementById('quizContainer').innerHTML = '<div class="quiz-card"><div style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.5rem;">第 ' + (currentQ + 1) + ' / ' + QUIZZES.length + ' 题</div><div class="quiz-q">' + q.q + '</div><div class="quiz-options">' + html + '</div>' + feedback + '</div>';
+  }
+
+  function selectAnswer(i) {
+    answered[currentQ] = i;
+    renderQuestion();
+  }
+
+  function nextQuestion() {
+    currentQ++;
+    document.getElementById('nextQuestion').style.display = 'none';
+    renderQuestion();
+    document.getElementById('quizProgress').style.width = ((currentQ) / QUIZZES.length * 100) + '%';
+  }
+
+  function showFinalScore() {
+    var correct = 0;
+    answered.forEach(function(a, i) {
+      if (a === QUIZZES[i].correct) correct++;
+    });
+    var pct = Math.round(correct / QUIZZES.length * 100);
+    var msg = '';
+    if (pct >= 80) msg = '🏆 优秀！你对 Harness Engineering 理解得很透彻！';
+    else if (pct >= 60) msg = '👍 不错，继续加油！';
+    else msg = '💪 建议再复习一下核心概念~';
+
+    document.getElementById('quizProgress').style.width = '100%';
+    document.getElementById('quizScore').style.display = 'block';
+    document.getElementById('quizScore').innerHTML = '🎯 最终得分：' + correct + ' / ' + QUIZZES.length + ' (' + pct + '%)<br><span style="font-size: 1rem; font-weight: normal; color: var(--text-muted);">' + msg + '</span>';
+    document.getElementById('retryQuiz').style.display = 'inline-block';
+    document.getElementById('nextQuestion').style.display = 'none';
+  }
+
+  startQuiz();
+</script>
+
+</body>
+</html>

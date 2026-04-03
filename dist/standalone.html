@@ -1,0 +1,895 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenClaw Skill Builder - ReactFlow Visual Editor</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/reactflow@11.10.4/dist/umd/react-flow.js"></script>
+    <script src="https://unpkg.com/zustand@4.5.0/dist/zustand.umd.js"></script>
+    <script src="https://unpkg.com/clsx@2.1.0/dist/clsx.umd.js"></script>
+    <script src="https://unpkg.com/tailwind-merge@2.2.1/dist/tailwind-merge.js"></script>
+    <script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/reactflow@11.10.4/dist/style.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="h-screen w-screen overflow-hidden">
+    <div id="root" class="h-full w-full"></div>
+
+<script type="text/babel">
+const { createRoot } = ReactDOM;
+const clsx = window.clsx;
+const twMerge = window.tailwindMerge;
+const { create } = zustand;
+const JSZip = window.JSZip;
+const { 
+  ReactFlow, 
+  Controls, 
+  Background, 
+  MiniMap, 
+  Handle, 
+  Position, 
+  addEdge, 
+  applyNodeChanges, 
+  applyEdgeChanges 
+} = ReactFlow;
+
+// --- Node Types Definition (7 types as requested) ---
+const NODE_TYPES = {
+  ROOT: 'root',
+  FEATURES: 'features',
+  USAGE: 'usage',
+  COMMANDS: 'commands',
+  PARAMETERS: 'parameters',
+  EXAMPLES: 'examples',
+  NOTES: 'notes',
+};
+
+const NODE_DEFINITIONS = {
+  [NODE_TYPES.ROOT]: {
+    name: 'Root',
+    defaultTitle: 'Root',
+    color: '#4CAF50',
+    bgColor: '#4CAF5020',
+    emoji: '📖',
+    defaultContent: '# 技能名称\n\n在这里描述你的技能功能。\n\n- **技能名称**: `skill-name`\n- **作者**: Your Name\n\n## 概述\n\n使用 Markdown 编写技能简介。'
+  },
+  [NODE_TYPES.FEATURES]: {
+    name: 'Features',
+    defaultTitle: '功能特性',
+    color: '#2196F3',
+    bgColor: '#2196F320',
+    emoji: '⭐',
+    defaultContent: '## 功能特性\n\n- 特性一：描述功能\n- 特性二：描述功能\n- 特性三：描述功能'
+  },
+  [NODE_TYPES.USAGE]: {
+    name: 'Usage',
+    defaultTitle: '使用流程',
+    color: '#9C27B0',
+    bgColor: '#9C27B020',
+    emoji: '▶️',
+    defaultContent: '## 使用方法\n\n### 基本使用\n\n```\n/skill-name command\n```\n\n描述基本使用方法。'
+  },
+  [NODE_TYPES.COMMANDS]: {
+    name: 'Commands',
+    defaultTitle: '命令说明',
+    color: '#FF9800',
+    bgColor: '#FF980020',
+    emoji: '⌨️',
+    defaultContent: '## 命令列表\n\n### `command1`\n\n描述命令一的功能。\n\n### `command2`\n\n描述命令二的功能。'
+  },
+  [NODE_TYPES.PARAMETERS]: {
+    name: 'Parameters',
+    defaultTitle: '参数定义',
+    color: '#F44336',
+    bgColor: '#F4433620',
+    emoji: '⚙️',
+    defaultContent: '## 参数说明\n\n| 参数 | 类型 | 必填 | 说明 |\n|------|------|------|------|\n| `param1` | string | 是 | 参数一说明 |\n| `param2` | number | 否 | 参数二说明 |'
+  },
+  [NODE_TYPES.EXAMPLES]: {
+    name: 'Examples',
+    defaultTitle: '使用示例',
+    color: '#00BCD4',
+    bgColor: '#00BCD420',
+    emoji: '💻',
+    defaultContent: '## 使用示例\n\n### 示例一\n\n描述示例场景。\n\n```\n示例代码或命令\n```\n\n输出结果：\n```\n示例输出\n```'
+  },
+  [NODE_TYPES.NOTES]: {
+    name: 'Notes',
+    defaultTitle: '备注说明',
+    color: '#607D8B',
+    bgColor: '#607D8B20',
+    emoji: '📝',
+    defaultContent: '## 备注\n\n在这里添加任何额外的说明、注意事项。\n\n- 注意事项一\n- 注意事项二'
+  }
+};
+
+// --- Initial State ---
+const STORAGE_KEY = 'openclaw-skill-builder-data';
+
+const loadInitialData = () => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch (e) {
+    console.warn('Failed to load from localStorage', e);
+  }
+
+  return {
+    nodes: [
+      {
+        id: 'root-1',
+        type: NODE_TYPES.ROOT,
+        position: { x: 250, y: 200 },
+        data: { 
+          title: 'Root',
+          content: NODE_DEFINITIONS[NODE_TYPES.ROOT].defaultContent
+        },
+      },
+    ],
+    edges: [],
+  };
+};
+
+// --- Store with Zustand ---
+const useSkillStore = create((set, get) => ({
+  nodes: loadInitialData().nodes,
+  edges: loadInitialData().edges,
+  selectedNodeId: null,
+
+  // Persist to localStorage
+  persist: () => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        nodes: get().nodes,
+        edges: get().edges
+      }));
+    } catch (e) {
+      console.error('Failed to save to localStorage', e);
+    }
+  },
+
+  onNodesChange: (changes) => {
+    set({
+      nodes: applyNodeChanges(changes, get().nodes),
+    });
+    get().persist();
+  },
+
+  onEdgesChange: (changes) => {
+    set({
+      edges: applyEdgeChanges(changes, get().edges),
+    });
+    get().persist();
+  },
+
+  onConnect: (connection) => {
+    set({
+      edges: addEdge({ ...connection, animated: true }, get().edges),
+    });
+    get().persist();
+  },
+
+  setSelectedNode: (nodeId) => {
+    set({ selectedNodeId: nodeId });
+  },
+
+  updateNodeData: (nodeId, newData) => {
+    set({
+      nodes: get().nodes.map(node => 
+        node.id === nodeId 
+          ? { ...node, data: { ...node.data, ...newData } }
+          : node
+      ),
+    });
+    get().persist();
+  },
+
+  addNode: (type, parentId = null) => {
+    const typeCount = get().nodes.filter(n => n.type === type).length + 1;
+    const nodeId = `${type}-${typeCount}`;
+    
+    let position;
+    if (parentId) {
+      const parent = get().nodes.find(n => n.id === parentId);
+      if (parent) {
+        // Count how many children this parent already has to space them vertically
+        const childCount = get().edges.filter(e => e.source === parentId).length;
+        position = { 
+          x: parent.position.x + 350, 
+          y: parent.position.y + childCount * 100 - 50 
+        };
+      } else {
+        position = { x: 100 + Math.random() * 300, y: 100 + Math.random() * 300 };
+      }
+    } else {
+      position = { x: 100 + Math.random() * 300, y: 100 + Math.random() * 300 };
+    }
+
+    const def = NODE_DEFINITIONS[type];
+    const newNode = {
+      id: nodeId,
+      type: type,
+      position,
+      data: {
+        title: def.defaultTitle,
+        content: def.defaultContent
+      },
+    };
+
+    set({
+      nodes: [...get().nodes, newNode],
+    });
+
+    if (parentId) {
+      set({
+        edges: [...get().edges, { 
+          id: `${parentId}-${nodeId}`, 
+          source: parentId, 
+          target: nodeId, 
+          animated: true 
+        }],
+      });
+    }
+
+    get().persist();
+    return nodeId;
+  },
+
+  deleteSelectedNode: () => {
+    const { selectedNodeId, nodes, edges } = get();
+    if (!selectedNodeId) return;
+    if (selectedNodeId === 'root-1' && nodes.length === 1) return;
+
+    set({
+      nodes: nodes.filter(n => n.id !== selectedNodeId),
+      edges: edges.filter(e => e.source !== selectedNodeId && e.target !== selectedNodeId),
+      selectedNodeId: null,
+    });
+    get().persist();
+  },
+
+  reset: () => {
+    const initial = loadInitialData();
+    set({
+      nodes: initial.nodes,
+      edges: initial.edges,
+      selectedNodeId: null,
+    });
+    get().persist();
+  },
+
+  autoLayout: () => {
+    // Simple auto layout - root on left, children cascade to right
+    const root = get().nodes.find(n => n.type === NODE_TYPES.ROOT);
+    if (!root) return;
+    
+    const visited = new Set([root.id]);
+    const queue = [root];
+    let level = 1;
+    const levelWidth = 400;
+    const verticalSpacing = 120;
+    
+    while (queue.length > 0) {
+      const levelSize = queue.length;
+      const startY = -(levelSize - 1) * verticalSpacing / 2;
+      
+      for (let i = 0; i < levelSize; i++) {
+        const node = queue.shift();
+        const children = get().edges
+          .filter(e => e.source === node.id)
+          .map(e => get().nodes.find(n => n.id === e.target));
+        
+        children.forEach((child, idx) => {
+          if (child && !visited.has(child.id)) {
+            visited.add(child.id);
+            const newX = root.position.x + level * levelWidth;
+            const newY = root.position.y + startY + i * verticalSpacing + (idx - children.length / 2) * 80;
+            child.position = { x: newX, y: newY };
+            queue.push(child);
+          }
+        });
+      }
+      level++;
+    }
+    
+    set({ nodes: [...get().nodes] });
+    get().persist();
+  },
+}));
+
+// --- Markdown Renderer (simple) ---
+const cn = (...inputs) => twMerge(clsx(inputs));
+
+const renderMarkdown = (text) => {
+  if (!text) return '';
+  let html = text
+    .replace(/^### (.*$)/gm, '<h3 class="text-lg font-bold mt-2 mb-1">$1</h3>')
+    .replace(/^## (.*$)/gm, '<h2 class="text-xl font-bold mt-3 mb-2">$1</h2>')
+    .replace(/^# (.*$)/gm, '<h1 class="text-2xl font-bold mt-4 mb-3">$1</h1>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/`([^`]+)`/g, '<code class="bg-gray-100 px-1 rounded text-xs">$1</code>')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener" class="text-blue-600 hover:underline">$1</a>')
+    .replace(/\n/g, '<br />');
+  
+  // Handle basic tables - improve styling
+  html = html.replace(/^\|.*\|$/gm, (line) => {
+    // Skip separator lines
+    if (line.includes('---')) {
+      return '';
+    }
+    const cells = line.split('|').filter(c => c.trim());
+    return '<tr>' + 
+      cells.map(cell => 
+        `<td class="border border-gray-300 px-2 py-1">${cell.trim()}</td>`
+      ).join('') + '</tr>';
+  });
+  
+  // Wrap table
+  if (html.includes('<tr>')) {
+    html = '<table class="border-collapse border border-gray-300 text-sm my-2">' + html + '</table>';
+  }
+  
+  return html;
+};
+
+// --- Custom Node Component ---
+// In ReactFlow, the node dragging is handled by the ReactFlow container itself
+// We just need to make sure we don't block interaction when not editing
+function CustomNode({ data, selected, type, id }) {
+  const def = NODE_DEFINITIONS[type];
+  const color = def.color;
+  const bgColor = def.bgColor;
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [localTitle, setLocalTitle] = React.useState(data.title || def.defaultTitle);
+  const [localContent, setLocalContent] = React.useState(data.content || def.defaultContent);
+  const updateNodeData = useSkillStore(state => state.updateNodeData);
+
+  React.useEffect(() => {
+    setLocalTitle(data.title || def.defaultTitle);
+    setLocalContent(data.content || def.defaultContent);
+  }, [data.title, data.content, data, def]);
+
+  const handleBlur = () => {
+    updateNodeData(id, { title: localTitle, content: localContent });
+    setIsEditing(false);
+  };
+
+  const handleDoubleClick = (e) => {
+    // Double-click to start editing
+    e.stopPropagation();
+    e.preventDefault();
+    setIsEditing(true);
+  };
+
+  const stopPropagation = (e) => {
+    // When editing, stop propagation so ReactFlow doesn't interfere
+    if (isEditing) {
+      e.stopPropagation();
+    }
+  };
+
+  const emojiIcon = def.emoji;
+
+  return (
+    <div 
+      className={cn(
+        'rounded-lg shadow-md border-2 bg-white transition-all relative',
+        selected ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-200',
+      )}
+      style={{ 
+        borderTopColor: color, 
+        borderTopWidth: 4,
+        minWidth: '260px',
+        minHeight: '140px',
+        // When not editing, allow ReactFlow to handle dragging
+        pointerEvents: isEditing ? 'auto' : 'auto',
+      }}
+    >
+      <Handle 
+        type="target" 
+        position={Position.Left} 
+        className="w-3 h-3 bg-gray-400 border border-white shadow-sm z-10"
+        style={{ left: -6 }}
+      />
+      
+      {/* Only stop propagation when editing. When not editing, allow ReactFlow drag */}
+      <div onDoubleClick={handleDoubleClick} onMouseDown={stopPropagation} onMouseMove={stopPropagation}>
+        {isEditing ? (
+          <div className="p-3 space-y-2">
+            <input 
+              type="text"
+              value={localTitle}
+              onChange={(e) => setLocalTitle(e.target.value)}
+              onBlur={handleBlur}
+              placeholder="Node title..."
+              className="w-full px-2 py-1 border-b border-blue-300 focus:outline-none focus:border-blue-500 font-semibold text-gray-800 bg-transparent"
+              autoFocus
+            />
+            <textarea 
+              value={localContent}
+              onChange={(e) => setLocalContent(e.target.value)}
+              onBlur={handleBlur}
+              placeholder="Write your content in Markdown..."
+              className="w-full px-2 py-1 border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm resize-vertical"
+              style={{ minHeight: '100px' }}
+            />
+          </div>
+        ) : (
+          <div className="p-3">
+            <div className="flex items-center gap-2 mb-2 pb-2 border-b border-gray-100">
+              <div className="p-1 rounded" style={{ backgroundColor: bgColor, color: color }}>
+                <span className="text-sm">{emojiIcon}</span>
+              </div>
+              <div className="font-semibold text-sm text-gray-800 truncate flex-1">
+                {localTitle}
+              </div>
+              <span className="text-gray-400 opacity-50 text-sm">✏️</span>
+            </div>
+            <div 
+              className="text-sm text-gray-700 overflow-auto max-h-[300px]"
+              style={{ fontSize: '0.875rem', lineHeight: '1.5' }}
+              dangerouslySetInnerHTML={{ __html: renderMarkdown(localContent) }}
+            />
+            {!localContent && (
+              <div className="text-gray-400 text-xs italic mt-2">
+                Double-click to edit Markdown content...
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="absolute -top-2 -right-2">
+        <span className="text-[10px] px-1.5 py-0.5 bg-white border border-gray-300 rounded-full text-gray-600 shadow-sm">
+          {def.name}
+        </span>
+      </div>
+
+      <Handle 
+        type="source" 
+        position={Position.Right} 
+        className="w-3 h-3 bg-gray-400 border border-white shadow-sm z-10"
+        style={{ right: -6 }}
+      />
+    </div>
+  );
+}
+
+// --- Code Generation ---
+function findRoot(nodes) {
+  return nodes.find(n => n.type === NODE_TYPES.ROOT);
+}
+
+function collectAllNodesByType(nodes) {
+  const result = {
+    root: null,
+    features: [],
+    usage: [],
+    commands: [],
+    parameters: [],
+    examples: [],
+    notes: [],
+    all: [...nodes]
+  };
+  
+  nodes.forEach(node => {
+    switch (node.type) {
+      case NODE_TYPES.ROOT:
+        result.root = node;
+        break;
+      case NODE_TYPES.FEATURES:
+        result.features.push(node);
+        break;
+      case NODE_TYPES.USAGE:
+        result.usage.push(node);
+        break;
+      case NODE_TYPES.COMMANDS:
+        result.commands.push(node);
+        break;
+      case NODE_TYPES.PARAMETERS:
+        result.parameters.push(node);
+        break;
+      case NODE_TYPES.EXAMPLES:
+        result.examples.push(node);
+        break;
+      case NODE_TYPES.NOTES:
+        result.notes.push(node);
+        break;
+    }
+  });
+  
+  return result;
+}
+
+function extractSkillName(root) {
+  // Try to extract from first heading
+  const firstLine = (root.data.content || '').split('\n')[0];
+  const match = firstLine.match(/^#\s*(.*)$/);
+  if (match && match[1]) {
+    return match[1]
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-]/g, '');
+  }
+  return (root.data.title || 'openclaw-skill')
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '');
+}
+
+function extractDescription(root) {
+  const content = root.data.content || '';
+  const lines = content.split('\n');
+  for (const line of lines) {
+    if (line.trim() && !line.startsWith('#') && !line.startsWith('-')) {
+      return line.trim().replace(/[#*`]/g, '');
+    }
+  }
+  return 'OpenClaw AgentSkill';
+}
+
+function generateSkillMd(root, collected) {
+  let content = '';
+  
+  // Root content is the base
+  content += `${root.data.content || ''}\n\n`;
+  
+  // Add each section in order
+  [
+    { key: 'features', title: '## 功能特性' },
+    { key: 'usage', title: '## 使用方法' },
+    { key: 'commands', title: '## 命令说明' },
+    { key: 'parameters', title: '## 参数说明' },
+    { key: 'examples', title: '## 使用示例' },
+    { key: 'notes', title: '## 备注' },
+  ].forEach(({ key, title }) => {
+    if (collected[key].length > 0) {
+      collected[key].forEach(node => {
+        // If the node content doesn't already have a heading matching the type, add it
+        const hasHeading = node.data.content.split('\n').some(line => 
+          line.startsWith('# ') || line.startsWith('## ') || line.startsWith('### ')
+        );
+        if (!hasHeading) {
+          content += `${title}\n\n`;
+        }
+        content += `${node.data.content}\n\n`;
+      });
+    }
+  });
+
+  return content.trim();
+}
+
+function generatePackageJson(skillName, description) {
+  return JSON.stringify({
+    name: skillName,
+    version: '1.0.0',
+    description,
+    main: 'index.js',
+    dependencies: {},
+    keywords: ['openclaw', 'skill'],
+    author: '',
+    license: 'MIT'
+  }, null, 2);
+}
+
+function generateIndexJs(skillName, commands) {
+  let code = `/**
+ * ${skillName} - OpenClaw AgentSkill
+ * Auto-generated by OpenClaw Skill Builder (ReactFlow)
+ */
+
+export default async function run(params, context) {
+  const { message, args, toolCall } = context;
+  const command = args[0] || '';
+
+`;
+
+  if (commands.length === 0) {
+    code += `  // Add your command logic here\n`;
+    code += `  return { text: "Hello from ${skillName}!" };\n`;
+  } else {
+    commands.forEach((cmd, index) => {
+      const cmdName = (cmd.data.title || 'command')
+        .toLowerCase()
+        .replace(/\s+/g, '-')
+        .replace(/[^a-z0-9-]/g, '');
+      
+      if (index === 0) {
+        code += `  if (command === '${cmdName}') {\n`;
+      } else {
+        code += `  } else if (command === '${cmdName}') {\n`;
+      }
+      code += `    // ${cmd.data.title}\n`;
+      code += `    // TODO: Implement this command\n`;
+      code += `    return { text: "Running: ${cmd.data.title}" };\n`;
+      code += `  }\n`;
+    });
+
+    const allCommands = commands.map(cmd => 
+      (cmd.data.title || 'command')
+        .toLowerCase()
+        .replace(/\s+/g, '-')
+        .replace(/[^a-z0-9-]/g, '')
+    ).filter(Boolean);
+
+    code += `\n  return { text: "Available commands: ${allCommands.join(', ')}" };\n`;
+  }
+
+  code += '}\n';
+  return code;
+}
+
+function generateReadme(skillName, description) {
+  return `# ${skillName}
+
+${description}
+
+## Installation
+
+Place this directory in your OpenClaw skills folder:
+
+\`\`\`
+cp -r ${skillName} ~/.openclaw/workspace/skills/
+\`\`\`
+
+## Usage
+
+Use in OpenClaw with:
+
+\`\`\`
+/${skillName} [command]
+\`\`\`
+
+## Description
+
+Auto-generated by OpenClaw Skill Builder (visual mindmap editor)
+`;
+}
+
+function generateSkillFiles(nodes, edges) {
+  const collected = collectAllNodesByType(nodes);
+  const root = collected.root;
+  
+  if (!root) {
+    throw new Error('No Root node found');
+  }
+
+  const skillName = extractSkillName(root);
+  const description = extractDescription(root);
+
+  return {
+    skillName,
+    files: {
+      'SKILL.md': generateSkillMd(root, collected),
+      'package.json': generatePackageJson(skillName, description),
+      'index.js': generateIndexJs(skillName, collected.commands),
+      'README.md': generateReadme(skillName, description),
+    }
+  };
+}
+
+// --- Main App Component ---
+function App() {
+  const { 
+    nodes, 
+    edges, 
+    selectedNodeId,
+    onNodesChange, 
+    onEdgesChange, 
+    onConnect,
+    addNode,
+    deleteSelectedNode,
+    reset,
+    autoLayout
+  } = useSkillStore();
+
+  const nodeTypes = React.useMemo(() => ({
+    [NODE_TYPES.ROOT]: CustomNode,
+    [NODE_TYPES.FEATURES]: CustomNode,
+    [NODE_TYPES.USAGE]: CustomNode,
+    [NODE_TYPES.COMMANDS]: CustomNode,
+    [NODE_TYPES.PARAMETERS]: CustomNode,
+    [NODE_TYPES.EXAMPLES]: CustomNode,
+    [NODE_TYPES.NOTES]: CustomNode,
+  }), []);
+
+  const handleAddNode = (type) => {
+    addNode(type, selectedNodeId);
+  };
+
+  const handleExportZip = async () => {
+    try {
+      const { skillName, files } = generateSkillFiles(nodes, edges);
+      const zip = new JSZip();
+      
+      Object.entries(files).forEach(([filename, content]) => {
+        zip.file(filename, content);
+      });
+
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${skillName}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to generate zip:', error);
+      alert('Error generating ZIP: ' + error.message);
+    }
+  };
+
+  const handleExportJson = () => {
+    const blob = new Blob([JSON.stringify({ nodes, edges }, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'skill-builder-save.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleTest = () => {
+    try {
+      const { skillName, files } = generateSkillFiles(nodes, edges);
+      let output = `Generated Skill: ${skillName}\n\n`;
+      Object.entries(files).forEach(([filename, content]) => {
+        output += `=== ${filename} ===\n${content}\n\n`;
+      });
+      alert(output);
+    } catch (error) {
+      alert('Test error: ' + error.message);
+    }
+  };
+
+  const reactFlowStyle = {
+    background: '#f8f8f8',
+    width: '100%',
+    height: '100%',
+  };
+
+  return (
+    <div className="flex h-full w-full">
+      {/* Left Sidebar - Add Nodes */}
+      <div className="w-64 bg-white border-r border-gray-200 shadow-sm flex flex-col z-10 h-full overflow-y-auto">
+        <div className="p-4 border-b bg-gray-50">
+          <h1 className="font-bold text-lg text-gray-800">OpenClaw Skill Builder</h1>
+          <p className="text-xs text-gray-500 mt-1">ReactFlow Visual Editor</p>
+        </div>
+
+        <div className="p-3 border-b border-gray-200">
+          <h2 className="font-semibold text-sm text-gray-700 mb-3">添加节点</h2>
+          <div className="space-y-2">
+            {Object.entries(NODE_DEFINITIONS).map(([type, def]) => {
+              return (
+                <button
+                  key={type}
+                  onClick={() => handleAddNode(type)}
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded hover:bg-gray-50 transition-colors border border-gray-200 group"
+                  style={{ borderLeftColor: def.color, borderLeftWidth: 4 }}
+                >
+                  <div className="p-1.5 rounded" style={{ backgroundColor: def.bgColor, color: def.color }}>
+                    <span>{def.emoji}</span>
+                  </div>
+                  <div className="text-left flex-1">
+                    <div className="text-sm font-medium text-gray-700 group-hover:text-gray-900">
+                      {def.name}
+                    </div>
+                  </div>
+                  <span className="opacity-50 text-sm">➕</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="p-3 border-b border-gray-200">
+          <h2 className="font-semibold text-sm text-gray-700 mb-3">编辑操作</h2>
+          <div className="space-y-2">
+            <button
+              onClick={deleteSelectedNode}
+              disabled={!selectedNodeId}
+              className="w-full flex items-center gap-2 px-3 py-2 rounded border border-red-200 hover:bg-red-50 text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span>🗑️</span>
+              <span className="text-sm">删除选中节点</span>
+            </button>
+            <button
+              onClick={autoLayout}
+              className="w-full flex items-center gap-2 px-3 py-2 rounded border border-blue-200 hover:bg-blue-50 text-blue-600"
+            >
+              <span>📐</span>
+              <span className="text-sm">自动排列布局</span>
+            </button>
+            <button
+              onClick={reset}
+              className="w-full flex items-center gap-2 px-3 py-2 rounded border border-gray-200 hover:bg-gray-50 text-gray-600"
+            >
+              <span>🔄</span>
+              <span className="text-sm">重置画布</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="p-3 border-b border-gray-200">
+          <h2 className="font-semibold text-sm text-gray-700 mb-3">保存/导入</h2>
+          <div className="space-y-2">
+            <button
+              onClick={handleExportJson}
+              className="w-full flex items-center gap-2 px-3 py-2 rounded border border-gray-200 hover:bg-gray-50 text-gray-600"
+            >
+              <span>📥</span>
+              <span className="text-sm">导出项目 JSON</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="flex-1"></div>
+
+        <div className="p-3 text-xs text-gray-400 text-center border-t border-gray-200">
+          All dependencies via CDN • Single file • Works offline
+        </div>
+      </div>
+
+      {/* Main ReactFlow Canvas */}
+      <div className="flex-1 h-full relative">
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          onNodeClick={(_, node) => useSkillStore.getState().setSelectedNode(node.id)}
+          onPaneClick={() => useSkillStore.getState().setSelectedNode(null)}
+          nodeTypes={nodeTypes}
+          fitView
+          attributionPosition="bottom-right"
+          style={reactFlowStyle}
+          nodesDraggable={true}
+          nodesConnectable={true}
+          elementsSelectable={true}
+        >
+          <Background />
+          <Controls />
+          <MiniMap 
+            nodeColor={(node) => NODE_DEFINITIONS[node.type].color}
+            className="bg-white border rounded shadow-lg"
+          />
+        </ReactFlow>
+      </div>
+
+      {/* Right Bottom - Deploy & Test Panel */}
+      <div className="fixed bottom-4 right-4 z-20 w-72 bg-white rounded-xl shadow-xl border border-gray-200 p-4 space-y-3">
+        <h3 className="font-bold text-gray-800 flex items-center gap-2">
+          <span>⬆️</span>
+          部署测试
+        </h3>
+        <p className="text-xs text-gray-500">
+          自动生成 ZIP 包，包含 SKILL.md、index.js、package.json 和 README.md
+        </p>
+        <div className="space-y-2">
+          <button
+            onClick={handleTest}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          >
+            <span>🧪</span>
+            测试生成
+          </button>
+          <button
+            onClick={handleExportZip}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold"
+          >
+            <span>☁️</span>
+            导出 ZIP
+          </button>

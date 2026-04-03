@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpenClaw 思维导图技能生成器</title>
+<style>
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #f5f5f5;
+    height: 100vh;
+    overflow: hidden;
+}
+
+#toolbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50px;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 8px;
+    z-index: 1000;
+}
+
+#toolbar h1 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-right: auto;
+    color: #333;
+}
+
+.btn {
+    padding: 6px 12px;
+    border: 1px solid #ddd;
+    background: white;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.btn:hover {
+    background: #f0f0f0;
+}
+
+.btn.primary {
+    background: #2196F3;
+    color: white;
+    border-color: #2196F3;
+}
+
+.btn.primary:hover {
+    background: #1976D2;
+}
+
+#canvas {
+    margin-top: 50px;
+    width: 100%;
+    height: calc(100vh - 50px);
+    overflow: auto;
+    background: #f5f5f5;
+    position: relative;
+    cursor: grab;
+}
+
+#canvas.dragging {
+    cursor: grabbing;
+}
+
+.node {
+    position: absolute;
+    background: white;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    min-width: 200px;
+    max-width: 300px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    cursor: move;
+}
+
+.node:hover {
+    border-color: #2196F3;
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
+
+.node.selected {
+    border-color: #2196F3;
+    box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.3);
+}
+
+.node-header {
+    padding: 8px 12px;
+    background: #fafafa;
+    border-bottom: 1px solid #eee;
+    border-radius: 6px 6px 0 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.node-title {
+    flex: 1;
+    font-weight: 600;
+    font-size: 14px;
+    border: none;
+    background: transparent;
+    outline: none;
+    padding: 4px 0;
+}
+
+.node-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.icon-btn {
+    width: 20px;
+    height: 20px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    line-height: 1;
+    color: #666;
+}
+
+.icon-btn:hover {
+    background: #e0e0e0;
+}
+
+.node-content {
+    padding: 8px;
+}
+
+.node-content textarea {
+    width: 100%;
+    min-height: 100px;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    padding: 8px;
+    font-size: 13px;
+    font-family: monospace;
+    outline: none;
+    resize: vertical;
+}
+
+.node-content textarea:focus {
+    border-color: #2196F3;
+}
+
+.connection {
+    position: absolute;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.connection line {
+    stroke: #999;
+    stroke-width: 2;
+}
+
+.connection.selected line {
+    stroke: #2196F3;
+    stroke-width: 3;
+}
+
+#minimap {
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    width: 180px;
+    height: 120px;
+    background: rgba(255,255,255,0.9);
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+#modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+}
+
+#modal.active {
+    display: flex;
+}
+
+.modal-content {
+    background: white;
+    padding: 24px;
+    border-radius: 8px;
+    min-width: 300px;
+    max-width: 500px;
+}
+
+.modal-content h2 {
+    margin-bottom: 16px;
+    font-size: 18px;
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 4px;
+    font-weight: 500;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 24px;
+}
+
+.tooltip {
+    position: fixed;
+    background: rgba(0,0,0,0.8);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    pointer-events: none;
+    z-index: 3000;
+    display: none;
+}
+</style>
+</head>
+<body>
+<div id="toolbar">
+    <h1>🦀 OpenClaw 思维导图技能生成器</h1>
+    <button class="btn" id="addRootBtn">添加根节点</button>
+    <button class="btn" id="addChildBtn">添加子节点</button>
+    <button class="btn" id="clearBtn">清空</button>
+    <button class="btn primary" id="exportBtn">导出 ZIP</button>
+</div>
+
+<div id="canvas">
+    <svg id="connections" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"></svg>
+</div>
+
+<div id="minimap"></div>
+
+<div id="tooltip" class="tooltip"></div>
+
+<div id="modal">
+    <div class="modal-content">
+        <h2>导出技能包</h2>
+        <div class="form-group">
+            <label>技能名称</label>
+            <input type="text" id="skillName" placeholder="例如: my-skill">
+        </div>
+        <div class="form-group">
+            <label>技能描述</label>
+            <input type="text" id="skillDescription" placeholder="这是一个什么技能">
+        </div>
+        <div class="modal-actions">
+            <button class="btn" id="cancelExportBtn">取消</button>
+            <button class="btn primary" id="confirmExportBtn">确认导出</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+// 数据模型
+let nodes = [];
+let connections = [];
+let nodeIdCounter = 0;
+let selectedNodeId = null;
+let selectedConnectionId = null;
+
+// 拖拽状态
+let isDraggingNode = false;
+let isDraggingCanvas = false;
+let dragNode = null;
+let dragOffset = { x: 0, y: 0 };
+let canvasOrigin = { x: 0, y: 0 };
+let lastCanvasPos = { x: 0, y: 0 };
+
+// DOM 引用
+const canvas = document.getElementById('canvas');
+const connectionsSvg = document.getElementById('connections');
+
+// 工具函数
+function generateId() {
+    return 'node_' + (nodeIdCounter++);
+}
+
+function centerCanvas() {
+    const rect = canvas.getBoundingClientRect();
+    canvasOrigin.x = rect.width / 2;
+    canvasOrigin.y = rect.height / 2;
+    render();
+}
+
+function getNodeCenter(node) {
+    const rect = canvas.getBoundingClientRect();
+    return {
+        x: canvasOrigin.x + node.x + node.width / 2,
+        y: canvasOrigin.y + node.y + node.headerHeight / 2
+    };
+}
+
+// 创建节点
+function createNode(x, y, title = '新节点', content = '') {
+    const node = {
+        id: generateId(),
+        x: x,
+        y: y,
+        title: title,
+        content: content,
+        width: 250,
+        headerHeight: 40,
+        minHeight: 150
+    };
+    nodes.push(node);
+    renderNode(node);
+    updateConnections();
+    return node;
+}
+
+function addChildNode(parentId) {
+    const parent = nodes.find(n => n.id === parentId);
+    if (!parent) return;
+
+    const siblings = connections.filter(c => c.parentId === parentId).length;
+    const x = parent.x + parent.width + 50 + siblings * 20;
+    const y = parent.y + siblings * 160;
+
+    const child = createNode(x, y, '子节点', '');
+    connections.push({
+        id: `${parentId}_${child.id}`,
+        parentId: parentId,
+        childId: child.id
+    });
+
+    selectNode(child.id);
+    render();
+    return child;
+}
+
+// 删除节点
+function deleteNode(nodeId) {
+    // 删除相关连接
+    connections = connections.filter(c => c.parentId !== nodeId && c.childId !== nodeId);
+    // 删除节点
+    nodes = nodes.filter(n => n.id !== nodeId);
+    // 从 DOM 移除
+    const el = document.querySelector(`[data-node-id="${nodeId}"]`);
+    if (el) el.remove();
+    // 更新选择
+    if (selectedNodeId === nodeId) {
+        selectedNodeId = null;
+    }
+    render();
+}
+
+// 渲染单个节点
+function renderNode(node) {
+    let el = document.querySelector(`[data-node-id="${node.id}"]`);
+    if (!el) {
+        el = document.createElement('div');
+        el.className = 'node';
+        el.setAttribute('data-node-id', node.id);
+        canvas.appendChild(el);
+
+        // 绑定拖拽事件
+        el.addEventListener('mousedown', startNodeDrag);
+        el.addEventListener('click', (e) => {
+            if (e.target === el || e.target.classList.contains('node-header')) {
+                selectNode(node.id);
+            }
+        });
+    }
+
+    el.style.left = (canvasOrigin.x + node.x) + 'px';
+    el.style.top = (canvasOrigin.y + node.y) + 'px';
+    el.style.width = node.width + 'px';
+    el.classList.toggle('selected', node.id === selectedNodeId);
+
+    el.innerHTML = `
+        <div class="node-header">
+            <input type="text" class="node-title" value="${escapeHtml(node.title)}" placeholder="节点标题">
+            <div class="node-actions">
+                <button class="icon-btn" title="添加子节点">+</button>
+                <button class="icon-btn" title="删除">×</button>
+            </div>
+        </div>
+        <div class="node-content">
+            <textarea placeholder="在这里输入 Markdown 内容...">${escapeHtml(node.content)}</textarea>
+        </div>
+    `;
+
+    // 绑定事件
+    const titleInput = el.querySelector('.node-title');
+    const contentInput = el.querySelector('.node-content textarea');
+    const addBtn = el.querySelector('.node-actions button:first-child');
+    const delBtn = el.querySelector('.node-actions button:last-child');
+
+    titleInput.addEventListener('input', () => {
+        node.title = titleInput.value;
+    });
+
+    contentInput.addEventListener('input', () => {
+        node.content = contentInput.value;
+        adjustNodeHeight(node, contentInput);
+    });
+
+    addBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        addChildNode(node.id);
+    });
+
+    delBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteNode(node.id);
+    });
+
+    // 自动调整高度
+    adjustNodeHeight(node, contentInput);
+}
+
+function adjustNodeHeight(node, textarea) {
+    const scrollHeight = textarea.scrollHeight;
+    const container = textarea.parentElement;
+    const header = textarea.closest('.node').querySelector('.node-header');
+    node.headerHeight = header.offsetHeight;
+    render();
+}
+
+function escapeHtml(text) {
+    return text.replace(/&/g, '&amp;')
+               .replace(/</g, '&lt;')
+               .replace(/>/g, '&gt;')
+               .replace(/"/g, '&quot;');
+}
+
+// 绘制连线
+function updateConnections() {
+    connectionsSvg.innerHTML = '';
+
+    connections.forEach(conn => {
+        const parent = nodes.find(n => n.id === conn.parentId);
+        const child = nodes.find(n => n.id === conn.childId);
+        if (!parent || !child) return;
+
+        const pCenter = getNodeCenter(parent);
+        const cCenter = getNodeCenter(child);
+
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        g.className = 'connection';
+        g.classList.toggle('selected', conn.id === selectedConnectionId);
+        g.setAttribute('data-connection-id', conn.id);
+
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        const midX = (pCenter.x + cCenter.x) / 2;
+        const d = `M ${pCenter.x} ${pCenter.y} C ${midX} ${pCenter.y}, ${midX} ${cCenter.y}, ${cCenter.x} ${cCenter.y}`;
+        line.setAttribute('d', d);
+        line.setAttribute('fill', 'none');
+        line.setAttribute('stroke', conn.id === selectedConnectionId ? '#2196F3' : '#999');
+        line.setAttribute('stroke-width', conn.id === selectedConnectionId ? '3' : '2');
+
+        g.appendChild(line);
+        connectionsSvg.appendChild(g);
+    });
+}
+
+// 选择节点
+function selectNode(nodeId) {
+    selectedNodeId = nodeId;
+    selectedConnectionId = null;
+    render();
+}
+
+// 拖拽处理
+function startNodeDrag(e) {
+    if (e.target.closest('input') || e.target.closest('textarea') || e.target.closest('button')) {
+        return;
+    }
+
+    isDraggingNode = true;
+    dragNode = nodes.find(n => n.id === e.currentTarget.getAttribute('data-node-id'));
+    const rect = e.currentTarget.getBoundingClientRect();
+    dragOffset.x = e.clientX - rect.left;
+    dragOffset.y = e.clientY - rect.top;
+    document.body.style.cursor = 'grabbing';
+    e.preventDefault();
+}
+
+function onMouseMove(e) {
+    if (isDraggingNode && dragNode) {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left - canvasOrigin.x - dragOffset.x;
+        const y = e.clientY - rect.top - canvasOrigin.y - dragOffset.y;
+        dragNode.x = x;
+        dragNode.y = y;
+        render();
+    } else if (isDraggingCanvas) {
+        const dx = e.clientX - lastCanvasPos.x;
+        const dy = e.clientY - lastCanvasPos.y;
+        canvasOrigin.x += dx;
+        canvasOrigin.y += dy;
+        lastCanvasPos = { x: e.clientX, y: e.clientY };
+        render();
+    }
+}
+
+function onMouseUp() {
+    if (isDraggingNode) {
+        isDraggingNode = false;
+        dragNode = null;
+        document.body.style.cursor = '';
+    }
+    if (isDraggingCanvas) {
+        isDraggingCanvas = false;
+        canvas.classList.remove('dragging');
+    }
+}
+
+function startCanvasDrag(e) {
+    if (e.target === canvas || e.target === connectionsSvg) {
+        isDraggingCanvas = true;
+        canvas.classList.add('dragging');
+        lastCanvasPos = { x: e.clientX, y: e.clientY };
+        selectedNodeId = null;
+        selectedConnectionId = null;
+        render();
+        e.preventDefault();
+    }
+}
+
+// 完整渲染
+function render() {
+    nodes.forEach(node => renderNode(node));
+    updateConnections();
+}
+
+// 导出 ZIP
+function showExportModal() {
+    document.getElementById('modal').classList.add('active');
+}
+
+function hideExportModal() {
+    document.getElementById('modal').classList.remove('active');
+}
+
+async function exportSkillZip() {
+    const skillName = document.getElementById('skillName').value.trim();
+    const description = document.getElementById('skillDescription').value.trim();
+
+    if (!skillName) {
+        alert('请输入技能名称');
+        return;
+    }
+
+    const zip = new JSZip();
+    const folder = zip.folder(skillName);
+
+    // 构建技能树结构 - 每个节点生成一个 section
+    function buildTree(parentId = null) {
+        const children = connections
+            .filter(c => c.parentId === parentId)
+            .map(c => nodes.find(n => n.id === c.childId))
+            .filter(n => n);
+
+        const result = [];
+        children.forEach(child => {
+            const item = {
+                title: child.title,
+                content: child.content,
+                children: buildTree(child.id)
+            };
+            result.push(item);
+        });
+        return result;
+    }
+
+    const rootNodes = nodes.filter(n => !connections.some(c => c.childId === n.id));
+    const tree = rootNodes.map(r => ({
+        title: r.title,
+        content: r.content,
+        children: buildTree(r.id)
+    }));
+
+    // 生成 SKILL.md
+    let skillMd = `# ${skillName}\n\n`;
+    skillMd += `${description}\n\n`;
+    skillMd += `## Description\n\n`;
+
+    function writeNodeToMd(node, indent = 0) {
+        const prefix = '  '.repeat(indent);
+        skillMd += `${prefix}- **${node.title}**\n`;
+        if (node.content.trim()) {
+            const lines = node.content.trim().split('\n');
+            lines.forEach(line => {
+                skillMd += `${prefix}  ${line}\n`;
+            });
+            skillMd += '\n';
+        }
+        node.children.forEach(child => writeNodeToMd(child, indent + 1));
+    }
+
+    tree.forEach(root => writeNodeToMd(root, 0));
+
+    folder.file('SKILL.md', skillMd);
+
+    // 生成 package.json (符合 OpenClaw 规范)
+    const pkg = {
+        name: skillName,
+        version: '1.0.0',
+        description: description,
+        main: 'SKILL.md',
+        openclaw: {
+            skill: true
+        }
+    };
+    folder.file('package.json', JSON.stringify(pkg, null, 2));
+
+    // 生成 README.md
+    let readme = `# ${skillName}\n\n`;
+    readme += `${description}\n\n`;
+    readme += `Created with OpenClaw 思维导图技能生成器\n`;
+    folder.file('README.md', readme);
+
+    // 保存并下载
+    const content = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(content);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${skillName}.zip`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    hideExportModal();
+}
+
+// 事件绑定
+document.getElementById('addRootBtn').addEventListener('click', () => {
+    createNode(-125, -100, '根节点', '');
+});
+
+document.getElementById('addChildBtn').addEventListener('click', () => {
+    if (selectedNodeId) {
+        addChildNode(selectedNodeId);
+    } else {
+        alert('请先选择一个节点');
+    }
+});
+
+document.getElementById('clearBtn').addEventListener('click', () => {
+    if (confirm('确定要清空所有节点吗？')) {
+        nodes = [];
+        connections = [];
+        selectedNodeId = null;
+        selectedConnectionId = null;
+        canvas.innerHTML = '<svg id="connections" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"></svg>';
+        connectionsSvg = document.getElementById('connections');
+    }
+});
+
+document.getElementById('exportBtn').addEventListener('click', () => {
+    if (nodes.length === 0) {
+        alert('至少需要一个节点才能导出');
+        return;
+    }
+    showExportModal();
+});
+
+document.getElementById('cancelExportBtn').addEventListener('click', hideExportModal);
+document.getElementById('confirmExportBtn').addEventListener('click', exportSkillZip);
+
+document.getElementById('modal').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('modal')) {
+        hideExportModal();
+    }
+});
+
+canvas.addEventListener('mousedown', startCanvasDrag);
+document.addEventListener('mousemove', onMouseMove);
+document.addEventListener('mouseup', onMouseUp);
+
+// 键盘快捷键
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Delete' && selectedNodeId) {
+        deleteNode(selectedNodeId);
+    }
+    if (e.key === 'Escape') {
+        selectedNodeId = null;
+        selectedConnectionId = null;
+        render();
+    }
+});
+
+// 初始化
+window.addEventListener('load', () => {
+    centerCanvas();
+    // 创建一个示例
+    const root = createNode(-200, -80, '我的技能', '这是技能的主要功能描述。\n\n技能使用说明写在这里。');
+    addChildNode(root.id);
+    addChildNode(root.id);
+});
+
+window.addEventListener('resize', () => {
+    render();
+});
+</script>
+</body>
+</html>
